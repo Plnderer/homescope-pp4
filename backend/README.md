@@ -107,7 +107,6 @@ Example body:
 {
   "state": "New York",
   "city": "New York",
-  "county": "",
   "beds": 3,
   "baths": 2,
   "living_space": 1800,
@@ -115,7 +114,7 @@ Example body:
 }
 ```
 
-The backend fills hidden model fields from medians for the selected market. If county is missing, it uses the most common county for that market.
+The backend fills hidden model fields from medians for the selected market.
 
 The response includes:
 

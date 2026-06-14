@@ -48,11 +48,6 @@ export default function App() {
             </button>
           ))}
         </nav>
-
-        <div className="sidebar-note">
-          <span>Iteration 3</span>
-          <p>FastAPI data, saved model artifact, and React interface in one focused demo.</p>
-        </div>
       </aside>
 
       <div className="workspace">

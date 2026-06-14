@@ -112,9 +112,7 @@ button {
 }
 
 .brand-block p,
-.brand-block span,
-.sidebar-note p,
-.sidebar-note span {
+.brand-block span {
   margin: 0;
 }
 
@@ -122,8 +120,7 @@ button {
   font-weight: 800;
 }
 
-.brand-block span,
-.sidebar-note p {
+.brand-block span {
   color: var(--muted);
   font-size: 0.84rem;
   line-height: 1.5;
@@ -163,23 +160,6 @@ button {
 
 .side-nav button.active span {
   color: var(--teal);
-}
-
-.sidebar-note {
-  margin-top: auto;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: rgba(17, 31, 46, 0.78);
-}
-
-.sidebar-note span {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--gold);
-  font-size: 0.76rem;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .workspace {

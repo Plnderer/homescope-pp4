@@ -28,7 +28,6 @@ export default function PredictPage({ setActivePage }) {
   const [form, setForm] = useState({
     state: "New York",
     city: "New York",
-    county: "",
     beds: 3,
     baths: 2,
     living_space: 1800,
@@ -63,7 +62,6 @@ export default function PredictPage({ setActivePage }) {
         baths: Number(form.baths),
         living_space: Number(form.living_space),
         listing_price: Number(form.listing_price),
-        county: form.county || undefined,
       };
       setResult(await predictListing(payload));
     } catch {
@@ -114,10 +112,6 @@ export default function PredictPage({ setActivePage }) {
               <select value={form.city} onChange={(event) => updateField("city", event.target.value)}>
                 {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
               </select>
-            </label>
-            <label>
-              <span>County optional</span>
-              <input value={form.county} placeholder="Use market default" onChange={(event) => updateField("county", event.target.value)} />
             </label>
             <label>
               <span>Beds</span>

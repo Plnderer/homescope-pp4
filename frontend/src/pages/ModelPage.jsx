@@ -16,9 +16,25 @@ function pick(data, keys, fallback = undefined) {
 }
 
 function normalizeMetrics(models) {
-  const raw = pick(models, ["metrics", "model_metrics"], models) || {};
-  if (Array.isArray(raw)) return raw;
-  return Object.entries(raw).map(([name, metrics]) => ({ name, ...metrics }));
+  const raw = pick(models, ["metrics", "model_metrics", "models"], {}) || {};
+  if (Array.isArray(raw)) {
+    return raw.map((item) => ({
+      name: item.name || item.model || item.model_name,
+      mae: item.mae ?? item.MAE,
+      rmse: item.rmse ?? item.RMSE,
+      r2: item.r2 ?? item.R2,
+    }));
+  }
+
+  return Object.entries(raw)
+    .filter(([, metrics]) => metrics && typeof metrics === "object" && !Array.isArray(metrics))
+    .map(([name, metrics]) => ({
+      name: metrics.name || metrics.model || metrics.model_name || name,
+      mae: metrics.mae ?? metrics.MAE,
+      rmse: metrics.rmse ?? metrics.RMSE,
+      r2: metrics.r2 ?? metrics.R2,
+    }))
+    .filter((item) => item.mae !== undefined || item.rmse !== undefined || item.r2 !== undefined);
 }
 
 export default function ModelPage({ setActivePage }) {
@@ -39,7 +55,7 @@ export default function ModelPage({ setActivePage }) {
   const metrics = useMemo(() => normalizeMetrics(modelData), [modelData]);
   const bestModel = pick(modelData, ["best_model_name", "selected_model", "model_name"], "Not available");
   const artifact = pick(modelData, ["artifact_metadata", "metadata"], {});
-  const residuals = pick(modelData, ["residual_sample_points", "residuals"], []);
+  const residuals = pick(modelData, ["residual_sample_points", "residual_points", "residuals"], []);
   const linear = metrics.find((item) => String(item.name || "").toLowerCase().includes("linear")) || {};
   const forest = metrics.find((item) => String(item.name || "").toLowerCase().includes("forest")) || metrics[1] || {};
   const maeBars = metrics.map((item) => ({ label: item.name || item.model || "Model", value: item.mae ?? item.MAE }));
@@ -68,22 +84,26 @@ export default function ModelPage({ setActivePage }) {
           <span>Comparison</span>
           <h2>Model metrics</h2>
         </div>
-        <div className="model-table">
-          <div className="model-row header">
-            <span>Model</span>
-            <span>MAE</span>
-            <span>RMSE</span>
-            <span>R2</span>
-          </div>
-          {metrics.map((item) => (
-            <div className="model-row" key={item.name || item.model}>
-              <span>{item.name || item.model}</span>
-              <span>{currency.format(item.mae ?? item.MAE ?? 0)}</span>
-              <span>{currency.format(item.rmse ?? item.RMSE ?? 0)}</span>
-              <span>{Number(item.r2 ?? item.R2 ?? 0).toFixed(3)}</span>
+        {metrics.length ? (
+          <div className="model-table">
+            <div className="model-row header">
+              <span>Model</span>
+              <span>MAE</span>
+              <span>RMSE</span>
+              <span>R2</span>
             </div>
-          ))}
-        </div>
+            {metrics.map((item) => (
+              <div className="model-row" key={item.name}>
+                <span>{item.name}</span>
+                <span>{currency.format(item.mae ?? 0)}</span>
+                <span>{currency.format(item.rmse ?? 0)}</span>
+                <span>{Number(item.r2 ?? 0).toFixed(3)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-visual">No model metrics were returned by the backend.</div>
+        )}
       </section>
 
       <section className="chart-grid">
