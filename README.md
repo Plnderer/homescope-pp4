@@ -68,7 +68,7 @@ Backend highlights:
 
 The backend reuses `src/data_utils.py` and `src/model_utils.py`, loads the housing and ASPUS data, caches cleaned data/model state in memory, and falls back to in-memory training if a saved artifact is missing.
 
-### Iteration 3: Product UI and UX Revamp
+### Iteration 2: Product UI and UX Revamp
 
 The third iteration focused on making the React app feel more like a polished product:
 

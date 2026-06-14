@@ -2,7 +2,7 @@
 
 This is the React/Vite interface for HomeScope. It calls the FastAPI backend for live housing summaries, market filters, model evidence, and fair-value predictions.
 
-## What Changed in Phase 3
+## What Changed in Iteration 2
 
 The frontend was redesigned to feel more like a finished product instead of a static dashboard:
 
