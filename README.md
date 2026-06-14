@@ -64,9 +64,35 @@ pip install -r requirements.txt
 streamlit run app/homescope_app.py
 ```
 
+## Iteration 2: React + FastAPI Direction
+
+Iteration 1 remains the Streamlit proof-of-concept. It proves local CSV loading, data cleaning, dashboard metrics, charts, model comparison, and prediction workflow.
+
+Iteration 2 starts the migration toward the planned product architecture:
+
+- `frontend/` is the React/Vite product interface.
+- `backend/` is the FastAPI service that exposes the Python data and model workflow.
+- `src/data_utils.py` and `src/model_utils.py` remain the shared technical foundation.
+- `scripts/train_model.py` saves the selected best model to `models/homescope_model.joblib` with metadata in `models/homescope_metadata.json`.
+
+Run the backend:
+
+```bash
+uvicorn backend.main:app --reload --port 8000
+```
+
+Run the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The second iteration connects React pages to real backend endpoints, and saved model artifacts improve consistency by avoiding retraining on every request. Future work can improve model quality, add feature importance, prepare deployment, build a map view, and support saved comparisons.
+
 ## Assignment Notes
 
 The app intentionally focuses on meaningful HomeScope interactions. It does not include login screens, settings menus, or dark mode because those do not prove the unique housing dashboard technology chain.
-
 
 

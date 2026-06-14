@@ -1,16 +1,18 @@
+import { useEffect, useState } from 'react';
 import BarChart from '../components/BarChart.jsx';
 import ChartCard from '../components/ChartCard.jsx';
 import MetricCard from '../components/MetricCard.jsx';
 import PageHeader from '../components/PageHeader.jsx';
-import { modelMetrics, residualPoints } from '../data/homeScopeData.js';
+import { getModels } from '../services/api.js';
 import { formatCompactCurrency, formatCurrency } from '../utils/formatters.js';
 
 function ResidualPlot({ points }) {
   const width = 640;
   const height = 260;
   const padding = 34;
-  const xValues = points.map((point) => point.x);
-  const yValues = points.map((point) => point.y);
+  const safePoints = points.length ? points : [{ predicted_price: 0, residual: 0 }];
+  const xValues = safePoints.map((point) => point.predicted_price);
+  const yValues = safePoints.map((point) => point.residual);
   const minX = Math.min(...xValues);
   const maxX = Math.max(...xValues);
   const minY = Math.min(...yValues);
@@ -18,9 +20,9 @@ function ResidualPlot({ points }) {
   const xSpread = Math.max(maxX - minX, 1);
   const ySpread = Math.max(maxY - minY, 1);
 
-  const chartPoints = points.map((point) => ({
-    x: padding + ((point.x - minX) / xSpread) * (width - padding * 2),
-    y: height - padding - ((point.y - minY) / ySpread) * (height - padding * 2),
+  const chartPoints = safePoints.map((point) => ({
+    x: padding + ((point.predicted_price - minX) / xSpread) * (width - padding * 2),
+    y: height - padding - ((point.residual - minY) / ySpread) * (height - padding * 2),
   }));
 
   return (
@@ -38,8 +40,39 @@ function ResidualPlot({ points }) {
 }
 
 export default function ModelPage({ onNavigate }) {
-  const linear = modelMetrics.find((metric) => metric.model.includes('Linear'));
-  const forest = modelMetrics.find((metric) => metric.model.includes('Random'));
+  const [modelData, setModelData] = useState(null);
+  const [status, setStatus] = useState({ loading: true, error: '' });
+
+  useEffect(() => {
+    let active = true;
+
+    getModels()
+      .then((payload) => {
+        if (!active) return;
+        setModelData(payload);
+        setStatus({ loading: false, error: '' });
+      })
+      .catch(() => {
+        if (!active) return;
+        setStatus({
+          loading: false,
+          error: 'Start the FastAPI backend to load model comparison results.',
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const metrics = modelData?.models ?? [];
+  const linear = metrics.find((metric) => metric.model.includes('Linear')) ?? { mae: 0 };
+  const forest = metrics.find((metric) => metric.model.includes('Random')) ?? { mae: 0 };
+  const selectedModel = modelData?.best_model_name ?? 'Unavailable';
+  const selectedMetricData = metrics.map((metric) => ({
+    label: metric.model.replace(' Regressor', ''),
+    value: metric.mae,
+  }));
 
   return (
     <main>
@@ -49,10 +82,13 @@ export default function ModelPage({ onNavigate }) {
         copy="HomeScope keeps the model evidence visible by showing the baseline model, tree-based model, evaluation metrics, and residual review."
       />
 
+      {status.loading ? <section className="status-card">Loading model evidence...</section> : null}
+      {status.error ? <section className="status-card error">{status.error}</section> : null}
+
       <section className="metrics-grid three-columns">
         <MetricCard label="Linear Regression MAE" value={formatCompactCurrency(linear.mae)} tone="blue" />
         <MetricCard label="Random Forest MAE" value={formatCompactCurrency(forest.mae)} tone="teal" />
-        <MetricCard label="Selected model" value="Random Forest" tone="yellow" />
+        <MetricCard label="Selected model" value={selectedModel.replace(' Regressor', '')} tone="yellow" />
       </section>
 
       <section className="model-table-card">
@@ -64,7 +100,7 @@ export default function ModelPage({ onNavigate }) {
             <span>RMSE</span>
             <span>R²</span>
           </div>
-          {modelMetrics.map((metric) => (
+          {metrics.map((metric) => (
             <div className="table-row" key={metric.model}>
               <span>{metric.model}</span>
               <span>{formatCurrency(metric.mae)}</span>
@@ -78,11 +114,22 @@ export default function ModelPage({ onNavigate }) {
       <section className="insight-card">
         <strong>Metric guide:</strong> MAE is the average dollar error, RMSE punishes larger misses more heavily,
         and R² gives a general view of how much pricing variation the model explains.
+        {modelData?.metadata?.trained_at ? ` Saved model trained at ${modelData.metadata.trained_at}.` : ''}
       </section>
 
-      <ChartCard title="Residual Plot for Best Model" note="Residuals near zero are better. Wider spread means the model struggles more with certain price ranges.">
-        <ResidualPlot points={residualPoints} />
+      <ChartCard title="MAE by Model" note="Lower MAE means a lower average dollar error on the held-out sample.">
+        <BarChart data={selectedMetricData.length ? selectedMetricData : [{ label: 'No data', value: 1 }]} tone="mixed" />
       </ChartCard>
+
+      <ChartCard title="Residual Plot for Best Model" note="Residuals near zero are better. Wider spread means the model struggles more with certain price ranges.">
+        <ResidualPlot points={modelData?.residual_points ?? []} />
+      </ChartCard>
+
+      {modelData?.limitations?.length ? (
+        <section className="insight-card">
+          <strong>Model limitations:</strong> {modelData.limitations.join(' ')}
+        </section>
+      ) : null}
 
       <div className="action-row">
         <button className="secondary-button" onClick={() => onNavigate('Market')}>Back to Dashboard</button>

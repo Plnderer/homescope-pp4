@@ -1,0 +1,1 @@
+"""HomeScope FastAPI backend package."""

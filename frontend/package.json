@@ -4,15 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "node -e \"require(require('path').join(process.env.INIT_CWD || process.cwd(), 'scripts/vite-runner.cjs'))\"",
+    "build": "node -e \"require(require('path').join(process.env.INIT_CWD || process.cwd(), 'scripts/vite-runner.cjs'))\"",
+    "preview": "node -e \"require(require('path').join(process.env.INIT_CWD || process.cwd(), 'scripts/vite-runner.cjs'))\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {}
+    "react-dom": "latest",
+    "vite": "latest"
+  }
 }

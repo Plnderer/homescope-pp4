@@ -2,8 +2,9 @@ export default function ScatterChart({ records }) {
   const width = 520;
   const height = 220;
   const padding = 28;
-  const sqftValues = records.map((record) => record.sqft);
-  const priceValues = records.map((record) => record.price);
+  const safeRecords = records.length ? records : [{ sqft: 0, price: 0 }];
+  const sqftValues = safeRecords.map((record) => record.sqft);
+  const priceValues = safeRecords.map((record) => record.price);
   const minSqft = Math.min(...sqftValues);
   const maxSqft = Math.max(...sqftValues);
   const minPrice = Math.min(...priceValues);
@@ -11,7 +12,7 @@ export default function ScatterChart({ records }) {
   const sqftSpread = Math.max(maxSqft - minSqft, 1);
   const priceSpread = Math.max(maxPrice - minPrice, 1);
 
-  const points = records.slice(0, 16).map((record) => ({
+  const points = safeRecords.slice(0, 24).map((record) => ({
     x: padding + ((record.sqft - minSqft) / sqftSpread) * (width - padding * 2),
     y: height - padding - ((record.price - minPrice) / priceSpread) * (height - padding * 2),
   }));

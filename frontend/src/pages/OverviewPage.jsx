@@ -1,11 +1,34 @@
+import { useEffect, useState } from 'react';
 import InfoCard from '../components/InfoCard.jsx';
 import MetricCard from '../components/MetricCard.jsx';
+import { getSummary } from '../services/api.js';
 import { formatCompactCurrency } from '../utils/formatters.js';
 
-export default function OverviewPage({ records, onNavigate }) {
-  const averagePrice = records.reduce((sum, record) => sum + record.price, 0) / records.length;
-  const states = new Set(records.map((record) => record.state));
-  const cities = new Set(records.map((record) => record.city));
+export default function OverviewPage({ onNavigate }) {
+  const [summary, setSummary] = useState(null);
+  const [status, setStatus] = useState({ loading: true, error: '' });
+
+  useEffect(() => {
+    let active = true;
+
+    getSummary()
+      .then((payload) => {
+        if (!active) return;
+        setSummary(payload);
+        setStatus({ loading: false, error: '' });
+      })
+      .catch(() => {
+        if (!active) return;
+        setStatus({
+          loading: false,
+          error: 'Connect the FastAPI backend to load live HomeScope market data.',
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <main>
@@ -32,11 +55,14 @@ export default function OverviewPage({ records, onNavigate }) {
         </aside>
       </section>
 
+      {status.loading ? <section className="status-card">Loading live market summary...</section> : null}
+      {status.error ? <section className="status-card error">{status.error}</section> : null}
+
       <section className="metrics-grid">
-        <MetricCard label="Total records" value={records.length.toLocaleString()} tone="teal" />
-        <MetricCard label="Average price" value={formatCompactCurrency(averagePrice)} tone="blue" />
-        <MetricCard label="States" value={states.size.toLocaleString()} tone="yellow" />
-        <MetricCard label="Cities" value={cities.size.toLocaleString()} tone="teal" />
+        <MetricCard label="Total records" value={(summary?.total_records ?? 0).toLocaleString()} tone="teal" />
+        <MetricCard label="Average price" value={formatCompactCurrency(summary?.average_price ?? 0)} tone="blue" />
+        <MetricCard label="States" value={(summary?.state_count ?? 0).toLocaleString()} tone="yellow" />
+        <MetricCard label="Cities" value={(summary?.city_count ?? 0).toLocaleString()} tone="teal" />
       </section>
 
       <section className="section-block">

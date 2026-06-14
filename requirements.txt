@@ -5,3 +5,8 @@ plotly
 streamlit
 joblib
 matplotlib
+fastapi
+uvicorn[standard]
+pydantic
+pytest
+httpx

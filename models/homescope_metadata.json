@@ -1,0 +1,647 @@
+{
+  "best_model_name": "Random Forest Regressor",
+  "model_metrics": [
+    {
+      "model": "Linear Regression",
+      "mae": 190034.82205494365,
+      "rmse": 298235.8923630724,
+      "r2": 0.7551696139471893
+    },
+    {
+      "model": "Random Forest Regressor",
+      "mae": 147246.51093581656,
+      "rmse": 275123.1075105312,
+      "r2": 0.7916470588100794
+    }
+  ],
+  "trained_at": "2026-06-13T20:41:10.417602+00:00",
+  "feature_columns": [
+    "Beds",
+    "Baths",
+    "Living Space",
+    "Zip Code Population",
+    "Zip Code Density",
+    "Median Household Income",
+    "Latitude",
+    "Longitude",
+    "Bed Bath Ratio",
+    "Income Density Ratio",
+    "Log Living Space",
+    "City",
+    "State",
+    "County"
+  ],
+  "feature_assumptions": [
+    "User-entered beds, baths, living space, state, city, optional county, and listing price drive the prediction.",
+    "Hidden demographic and location fields are filled from selected city medians by the API.",
+    "The saved artifact stores only the selected best pipeline; comparison metrics are stored in metadata."
+  ],
+  "dataset_row_count_after_cleaning": 38913,
+  "residual_points": [
+    {
+      "actual_price": 179990.0,
+      "predicted_price": 222848.85484084068,
+      "residual": -42858.85484084068
+    },
+    {
+      "actual_price": 219900.0,
+      "predicted_price": 192148.9173667521,
+      "residual": 27751.08263324789
+    },
+    {
+      "actual_price": 95000.0,
+      "predicted_price": 73772.60588918482,
+      "residual": 21227.394110815178
+    },
+    {
+      "actual_price": 499000.0,
+      "predicted_price": 299647.6806046354,
+      "residual": 199352.3193953646
+    },
+    {
+      "actual_price": 287900.0,
+      "predicted_price": 385087.20709686144,
+      "residual": -97187.20709686144
+    },
+    {
+      "actual_price": 339000.0,
+      "predicted_price": 415609.11646325217,
+      "residual": -76609.11646325217
+    },
+    {
+      "actual_price": 574900.0,
+      "predicted_price": 477116.53347129415,
+      "residual": 97783.46652870585
+    },
+    {
+      "actual_price": 529988.0,
+      "predicted_price": 594376.7432812176,
+      "residual": -64388.74328121764
+    },
+    {
+      "actual_price": 1890000.0,
+      "predicted_price": 1570160.2751151463,
+      "residual": 319839.7248848537
+    },
+    {
+      "actual_price": 350000.0,
+      "predicted_price": 374429.840407413,
+      "residual": -24429.840407413023
+    },
+    {
+      "actual_price": 619990.0,
+      "predicted_price": 640475.1446739358,
+      "residual": -20485.144673935836
+    },
+    {
+      "actual_price": 359900.0,
+      "predicted_price": 549600.2447386071,
+      "residual": -189700.24473860709
+    },
+    {
+      "actual_price": 379500.0,
+      "predicted_price": 419291.2221661778,
+      "residual": -39791.22216617782
+    },
+    {
+      "actual_price": 2100000.0,
+      "predicted_price": 1608364.4821391597,
+      "residual": 491635.5178608403
+    },
+    {
+      "actual_price": 212000.0,
+      "predicted_price": 280867.84276563564,
+      "residual": -68867.84276563564
+    },
+    {
+      "actual_price": 1200000.0,
+      "predicted_price": 2844461.283047615,
+      "residual": -1644461.283047615
+    },
+    {
+      "actual_price": 199995.0,
+      "predicted_price": 254949.6707746153,
+      "residual": -54954.67077461531
+    },
+    {
+      "actual_price": 309000.0,
+      "predicted_price": 315672.0170125629,
+      "residual": -6672.017012562894
+    },
+    {
+      "actual_price": 115000.0,
+      "predicted_price": 397450.059417459,
+      "residual": -282450.059417459
+    },
+    {
+      "actual_price": 319800.0,
+      "predicted_price": 299272.49571593537,
+      "residual": 20527.504284064635
+    },
+    {
+      "actual_price": 170000.0,
+      "predicted_price": 107412.46958032929,
+      "residual": 62587.530419670715
+    },
+    {
+      "actual_price": 2300000.0,
+      "predicted_price": 3062821.685070699,
+      "residual": -762821.6850706991
+    },
+    {
+      "actual_price": 604815.0,
+      "predicted_price": 503103.7267200548,
+      "residual": 101711.27327994519
+    },
+    {
+      "actual_price": 229500.0,
+      "predicted_price": 328857.7741486769,
+      "residual": -99357.7741486769
+    },
+    {
+      "actual_price": 599975.0,
+      "predicted_price": 720701.2141436522,
+      "residual": -120726.21414365224
+    },
+    {
+      "actual_price": 450000.0,
+      "predicted_price": 664700.6293293593,
+      "residual": -214700.62932935928
+    },
+    {
+      "actual_price": 360000.0,
+      "predicted_price": 355090.6749073314,
+      "residual": 4909.325092668587
+    },
+    {
+      "actual_price": 400000.0,
+      "predicted_price": 369583.41109475744,
+      "residual": 30416.588905242563
+    },
+    {
+      "actual_price": 849900.0,
+      "predicted_price": 1002134.2823713283,
+      "residual": -152234.28237132833
+    },
+    {
+      "actual_price": 455000.0,
+      "predicted_price": 381313.4998080989,
+      "residual": 73686.50019190111
+    },
+    {
+      "actual_price": 385000.0,
+      "predicted_price": 362790.16247129405,
+      "residual": 22209.837528705946
+    },
+    {
+      "actual_price": 135000.0,
+      "predicted_price": 262303.3138508409,
+      "residual": -127303.3138508409
+    },
+    {
+      "actual_price": 1245000.0,
+      "predicted_price": 754488.1137319655,
+      "residual": 490511.88626803446
+    },
+    {
+      "actual_price": 429000.0,
+      "predicted_price": 400935.8193528588,
+      "residual": 28064.180647141184
+    },
+    {
+      "actual_price": 475000.0,
+      "predicted_price": 522234.0596220896,
+      "residual": -47234.05962208961
+    },
+    {
+      "actual_price": 284900.0,
+      "predicted_price": 252694.3863409097,
+      "residual": 32205.613659090304
+    },
+    {
+      "actual_price": 360000.0,
+      "predicted_price": 452849.8166001662,
+      "residual": -92849.8166001662
+    },
+    {
+      "actual_price": 395000.0,
+      "predicted_price": 360668.59937097336,
+      "residual": 34331.40062902664
+    },
+    {
+      "actual_price": 849900.0,
+      "predicted_price": 894955.6169857166,
+      "residual": -45055.616985716624
+    },
+    {
+      "actual_price": 267000.0,
+      "predicted_price": 261681.67026070465,
+      "residual": 5318.329739295354
+    },
+    {
+      "actual_price": 475000.0,
+      "predicted_price": 699383.5376602899,
+      "residual": -224383.5376602899
+    },
+    {
+      "actual_price": 250000.0,
+      "predicted_price": 252797.35062942063,
+      "residual": -2797.350629420631
+    },
+    {
+      "actual_price": 367990.0,
+      "predicted_price": 377012.18496575666,
+      "residual": -9022.184965756664
+    },
+    {
+      "actual_price": 59900.0,
+      "predicted_price": 69869.66233838919,
+      "residual": -9969.662338389186
+    },
+    {
+      "actual_price": 525000.0,
+      "predicted_price": 518527.0485744394,
+      "residual": 6472.951425560575
+    },
+    {
+      "actual_price": 950000.0,
+      "predicted_price": 754495.5386200484,
+      "residual": 195504.46137995156
+    },
+    {
+      "actual_price": 200000.0,
+      "predicted_price": 226467.9846657766,
+      "residual": -26467.984665776603
+    },
+    {
+      "actual_price": 294500.0,
+      "predicted_price": 261513.42447948563,
+      "residual": 32986.575520514365
+    },
+    {
+      "actual_price": 205000.0,
+      "predicted_price": 146158.83927610374,
+      "residual": 58841.16072389626
+    },
+    {
+      "actual_price": 1395000.0,
+      "predicted_price": 2258594.3381651803,
+      "residual": -863594.3381651803
+    },
+    {
+      "actual_price": 990000.0,
+      "predicted_price": 1035900.3952148943,
+      "residual": -45900.39521489432
+    },
+    {
+      "actual_price": 529999.0,
+      "predicted_price": 486885.7427741928,
+      "residual": 43113.257225807174
+    },
+    {
+      "actual_price": 198900.0,
+      "predicted_price": 215208.76058881235,
+      "residual": -16308.76058881235
+    },
+    {
+      "actual_price": 164900.0,
+      "predicted_price": 193008.39095275637,
+      "residual": -28108.390952756366
+    },
+    {
+      "actual_price": 499000.0,
+      "predicted_price": 458146.7442168415,
+      "residual": 40853.25578315853
+    },
+    {
+      "actual_price": 410000.0,
+      "predicted_price": 578190.7616977046,
+      "residual": -168190.76169770455
+    },
+    {
+      "actual_price": 685000.0,
+      "predicted_price": 591458.7374515125,
+      "residual": 93541.26254848752
+    },
+    {
+      "actual_price": 120000.0,
+      "predicted_price": 361021.9560999757,
+      "residual": -241021.95609997568
+    },
+    {
+      "actual_price": 120000.0,
+      "predicted_price": 116260.89831022824,
+      "residual": 3739.1016897717636
+    },
+    {
+      "actual_price": 285000.0,
+      "predicted_price": 684216.0448916581,
+      "residual": -399216.0448916581
+    },
+    {
+      "actual_price": 318000.0,
+      "predicted_price": 308182.33156753605,
+      "residual": 9817.66843246395
+    },
+    {
+      "actual_price": 799000.0,
+      "predicted_price": 924345.1580728845,
+      "residual": -125345.15807288454
+    },
+    {
+      "actual_price": 339990.0,
+      "predicted_price": 331010.2477337262,
+      "residual": 8979.752266273776
+    },
+    {
+      "actual_price": 269900.0,
+      "predicted_price": 263059.6372512225,
+      "residual": 6840.362748777494
+    },
+    {
+      "actual_price": 1100000.0,
+      "predicted_price": 1111963.3333333333,
+      "residual": -11963.333333333256
+    },
+    {
+      "actual_price": 659000.0,
+      "predicted_price": 686684.988754635,
+      "residual": -27684.98875463498
+    },
+    {
+      "actual_price": 154950.0,
+      "predicted_price": 209391.6032841869,
+      "residual": -54441.60328418689
+    },
+    {
+      "actual_price": 525000.0,
+      "predicted_price": 336255.21328580816,
+      "residual": 188744.78671419184
+    },
+    {
+      "actual_price": 419000.0,
+      "predicted_price": 419735.3228657315,
+      "residual": -735.3228657314903
+    },
+    {
+      "actual_price": 625000.0,
+      "predicted_price": 532756.5508109244,
+      "residual": 92243.44918907562
+    },
+    {
+      "actual_price": 1827000.0,
+      "predicted_price": 1982731.4534074315,
+      "residual": -155731.4534074315
+    },
+    {
+      "actual_price": 89900.0,
+      "predicted_price": 241073.28905748855,
+      "residual": -151173.28905748855
+    },
+    {
+      "actual_price": 729900.0,
+      "predicted_price": 692531.6745079452,
+      "residual": 37368.325492054806
+    },
+    {
+      "actual_price": 365000.0,
+      "predicted_price": 291341.12456285127,
+      "residual": 73658.87543714873
+    },
+    {
+      "actual_price": 225000.0,
+      "predicted_price": 281362.0221130577,
+      "residual": -56362.02211305773
+    },
+    {
+      "actual_price": 465840.0,
+      "predicted_price": 438020.67212936375,
+      "residual": 27819.327870636247
+    },
+    {
+      "actual_price": 1725000.0,
+      "predicted_price": 1124117.3279014514,
+      "residual": 600882.6720985486
+    },
+    {
+      "actual_price": 275000.0,
+      "predicted_price": 882013.282433128,
+      "residual": -607013.282433128
+    },
+    {
+      "actual_price": 59900.0,
+      "predicted_price": 187276.86341427505,
+      "residual": -127376.86341427505
+    },
+    {
+      "actual_price": 220000.0,
+      "predicted_price": 171918.629502882,
+      "residual": 48081.37049711801
+    },
+    {
+      "actual_price": 340000.0,
+      "predicted_price": 354091.1730887952,
+      "residual": -14091.173088795214
+    },
+    {
+      "actual_price": 1850000.0,
+      "predicted_price": 1317355.181392519,
+      "residual": 532644.818607481
+    },
+    {
+      "actual_price": 495000.0,
+      "predicted_price": 630234.7955743846,
+      "residual": -135234.79557438463
+    },
+    {
+      "actual_price": 155000.0,
+      "predicted_price": 230982.49663978428,
+      "residual": -75982.49663978428
+    },
+    {
+      "actual_price": 295000.0,
+      "predicted_price": 258169.98673044678,
+      "residual": 36830.01326955322
+    },
+    {
+      "actual_price": 949000.0,
+      "predicted_price": 1149699.9214301326,
+      "residual": -200699.92143013258
+    },
+    {
+      "actual_price": 235000.0,
+      "predicted_price": 283243.53307559935,
+      "residual": -48243.53307559935
+    },
+    {
+      "actual_price": 189900.0,
+      "predicted_price": 162317.1136742765,
+      "residual": 27582.88632572349
+    },
+    {
+      "actual_price": 529900.0,
+      "predicted_price": 353789.03345864016,
+      "residual": 176110.96654135984
+    },
+    {
+      "actual_price": 780000.0,
+      "predicted_price": 560809.4971719458,
+      "residual": 219190.50282805425
+    },
+    {
+      "actual_price": 203900.0,
+      "predicted_price": 393492.55395466194,
+      "residual": -189592.55395466194
+    },
+    {
+      "actual_price": 399000.0,
+      "predicted_price": 539751.1276832817,
+      "residual": -140751.12768328167
+    },
+    {
+      "actual_price": 429900.0,
+      "predicted_price": 473848.5543880364,
+      "residual": -43948.55438803643
+    },
+    {
+      "actual_price": 600000.0,
+      "predicted_price": 732858.7265043285,
+      "residual": -132858.72650432854
+    },
+    {
+      "actual_price": 1399000.0,
+      "predicted_price": 1838049.05,
+      "residual": -439049.05000000005
+    },
+    {
+      "actual_price": 419900.0,
+      "predicted_price": 383793.59249936935,
+      "residual": 36106.40750063065
+    },
+    {
+      "actual_price": 290000.0,
+      "predicted_price": 273894.58260761393,
+      "residual": 16105.417392386065
+    },
+    {
+      "actual_price": 999990.0,
+      "predicted_price": 1681990.145157766,
+      "residual": -682000.1451577661
+    },
+    {
+      "actual_price": 175000.0,
+      "predicted_price": 276596.6521322919,
+      "residual": -101596.65213229193
+    },
+    {
+      "actual_price": 124990.0,
+      "predicted_price": 257389.17518912995,
+      "residual": -132399.17518912995
+    },
+    {
+      "actual_price": 168000.0,
+      "predicted_price": 263811.2543473324,
+      "residual": -95811.2543473324
+    },
+    {
+      "actual_price": 215000.0,
+      "predicted_price": 263600.7883104832,
+      "residual": -48600.788310483214
+    },
+    {
+      "actual_price": 584900.0,
+      "predicted_price": 600552.0895162153,
+      "residual": -15652.08951621526
+    },
+    {
+      "actual_price": 799000.0,
+      "predicted_price": 656614.1222185203,
+      "residual": 142385.87778147974
+    },
+    {
+      "actual_price": 665000.0,
+      "predicted_price": 577284.9446976327,
+      "residual": 87715.05530236731
+    },
+    {
+      "actual_price": 2500000.0,
+      "predicted_price": 2241824.9657777767,
+      "residual": 258175.03422222333
+    },
+    {
+      "actual_price": 599999.0,
+      "predicted_price": 620046.2705797673,
+      "residual": -20047.270579767297
+    },
+    {
+      "actual_price": 459000.0,
+      "predicted_price": 437309.92170187196,
+      "residual": 21690.078298128035
+    },
+    {
+      "actual_price": 499000.0,
+      "predicted_price": 575343.6748386028,
+      "residual": -76343.67483860278
+    },
+    {
+      "actual_price": 800000.0,
+      "predicted_price": 1015892.4776642605,
+      "residual": -215892.47766426054
+    },
+    {
+      "actual_price": 3894266.5599999838,
+      "predicted_price": 2437711.6554190996,
+      "residual": 1456554.9045808841
+    },
+    {
+      "actual_price": 600000.0,
+      "predicted_price": 603742.3576078562,
+      "residual": -3742.35760785616
+    },
+    {
+      "actual_price": 235000.0,
+      "predicted_price": 293184.4994539479,
+      "residual": -58184.49945394788
+    },
+    {
+      "actual_price": 525000.0,
+      "predicted_price": 522475.40683650685,
+      "residual": 2524.5931634931476
+    },
+    {
+      "actual_price": 739000.0,
+      "predicted_price": 633997.2072878833,
+      "residual": 105002.79271211673
+    },
+    {
+      "actual_price": 649950.0,
+      "predicted_price": 556742.3795706856,
+      "residual": 93207.62042931444
+    },
+    {
+      "actual_price": 1075000.0,
+      "predicted_price": 1555176.339206349,
+      "residual": -480176.3392063491
+    },
+    {
+      "actual_price": 888000.0,
+      "predicted_price": 1169997.681702339,
+      "residual": -281997.6817023391
+    },
+    {
+      "actual_price": 319900.0,
+      "predicted_price": 304458.9189663186,
+      "residual": 15441.081033681403
+    },
+    {
+      "actual_price": 255000.0,
+      "predicted_price": 240216.75053957442,
+      "residual": 14783.249460425577
+    }
+  ],
+  "limitations": [
+    "This is a research estimate, not a real appraisal.",
+    "Outliers and local location effects can increase prediction error.",
+    "ASPUS is national trend context and is not used as a listing-level prediction input."
+  ]
+}

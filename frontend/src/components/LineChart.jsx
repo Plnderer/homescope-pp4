@@ -2,13 +2,14 @@ export default function LineChart({ data }) {
   const width = 520;
   const height = 220;
   const padding = 28;
-  const values = data.map((item) => item.value);
+  const safeData = data.length ? data : [{ label: 'No data', value: 0 }];
+  const values = safeData.map((item) => item.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const spread = Math.max(max - min, 1);
 
-  const points = data.map((item, index) => {
-    const x = padding + (index / Math.max(data.length - 1, 1)) * (width - padding * 2);
+  const points = safeData.map((item, index) => {
+    const x = padding + (index / Math.max(safeData.length - 1, 1)) * (width - padding * 2);
     const y = height - padding - ((item.value - min) / spread) * (height - padding * 2);
     return { ...item, x, y };
   });
