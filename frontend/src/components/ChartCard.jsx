@@ -1,9 +1,11 @@
-export default function ChartCard({ title, note, children }) {
+export default function ChartCard({ title, description, children, wide = false }) {
   return (
-    <article className="chart-card">
-      <h3>{title}</h3>
+    <section className={`panel chart-card ${wide ? "wide" : ""}`}>
+      <div className="panel-heading">
+        <h2>{title}</h2>
+        {description ? <p>{description}</p> : null}
+      </div>
       <div className="chart-body">{children}</div>
-      {note ? <p className="chart-note">{note}</p> : null}
-    </article>
+    </section>
   );
 }

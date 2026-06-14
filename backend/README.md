@@ -1,43 +1,145 @@
-# HomeScope FastAPI Backend
+# HomeScope Backend
 
-The backend exposes the HomeScope Python data and model workflow to the React/Vite frontend.
+This folder contains the FastAPI backend for HomeScope. The backend exposes the cleaned housing data, market summaries, model evidence, and prediction workflow used by the React frontend.
 
-## Run
+## Run the API
 
-From the repository root:
+From the project root:
 
 ```bash
 uvicorn backend.main:app --reload --port 8000
 ```
 
-The React frontend can call the API through the Vite `/api` proxy or through `VITE_API_BASE_URL`.
+The API base URL is:
 
-## Endpoints
+```text
+http://localhost:8000/api
+```
 
-- `GET /api/health` returns backend status.
-- `GET /api/summary` returns dataset counts and headline price metrics.
-- `GET /api/filters?state=New York` returns available states and cities.
-- `GET /api/market` returns filtered market metrics, distribution data, scatter samples, city averages, and ASPUS trend context.
-- `GET /api/models` returns model comparison metrics, selected model, residual samples, metadata, and limitation notes.
-- `POST /api/predict` returns a model estimate, listing comparison, market label, assumptions, and limitation notes.
+## Data Sources
 
-## Model Artifacts
+The backend loads:
 
-Run the training script to create saved artifacts:
+- `data/American_Housing_Data_20231209.csv`
+- `data/ASPUS.csv`
+
+Housing records are cleaned through `src/data_utils.py`. Model training and prediction helpers come from `src/model_utils.py`.
+
+## Model Artifact Behavior
+
+The backend looks for:
+
+- `models/homescope_model.joblib`
+- `models/homescope_metadata.json`
+
+If both files exist, the backend loads the saved model artifact and metadata. If either file is missing, it trains a model once in memory as a fallback. It does not retrain on every request.
+
+To create or refresh the saved model files:
 
 ```bash
 python scripts/train_model.py
 ```
 
-The script writes:
+## Endpoints
 
-- `models/homescope_model.joblib`
-- `models/homescope_metadata.json`
+### `GET /api/health`
 
-When the artifact exists, the backend loads it instead of retraining. If it is missing, the backend trains once in memory and caches the result for the process lifetime.
+Returns a simple service check:
 
-## Prediction Assumptions
+```json
+{
+  "status": "ok",
+  "service": "homescope-backend"
+}
+```
 
-The user provides state, city, optional county, beds, baths, living space, and listing price. The backend fills hidden demographic and location fields from the selected city medians. If a city has no records, it falls back to state medians, then national medians.
+### `GET /api/summary`
 
-This is a research estimate, not a real appraisal. Outliers and local location effects can increase error, and ASPUS is national trend context rather than a listing-level prediction input.
+Returns high-level dataset values for the Overview page, including record count, states, cities, average price, median price, and price per square foot.
+
+### `GET /api/filters`
+
+Returns state and city options for frontend filters.
+
+If a state is provided, cities are filtered to that state. If the state is missing or `All`, cities come from the full cleaned dataset.
+
+### `GET /api/market`
+
+Returns market-level values for the selected filters:
+
+- matching listing count
+- average price
+- median price
+- average price per square foot
+- price histogram data
+- price vs. living space sample points
+- top city averages
+- ASPUS trend context
+
+Supported query parameters:
+
+- `state`
+- `city`
+- `min_beds`
+- `min_baths`
+- `min_sqft`
+- `max_sqft`
+
+### `GET /api/models`
+
+Returns model evidence for the Model page:
+
+- Linear Regression metrics
+- Random Forest metrics
+- selected best model
+- residual sample points
+- feature columns
+- saved artifact metadata when available
+- limitation notes
+
+### `POST /api/predict`
+
+Accepts a sample listing and returns a model-backed fair-value estimate.
+
+Example body:
+
+```json
+{
+  "state": "New York",
+  "city": "New York",
+  "county": "",
+  "beds": 3,
+  "baths": 2,
+  "living_space": 1800,
+  "listing_price": 725000
+}
+```
+
+The backend fills hidden model fields from medians for the selected market. If county is missing, it uses the most common county for that market.
+
+The response includes:
+
+- predicted fair value
+- listing price
+- dollar difference
+- percent difference
+- selected model name
+- market label
+- assumptions used
+- limitation notes
+
+## Development Checks
+
+From the project root:
+
+```bash
+python -m compileall -q src backend scripts tests
+python scripts/train_model.py
+python -m pytest tests -q
+```
+
+Run `scripts/smoke_check.py` while the backend is running to check the main API endpoints.
+
+## Important Note
+
+HomeScope predictions are model estimates for a portfolio project. They are not appraisals and should not be used for real financial decisions.

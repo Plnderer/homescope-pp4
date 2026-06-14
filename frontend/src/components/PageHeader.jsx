@@ -1,9 +1,12 @@
-export default function PageHeader({ eyebrow, title, copy }) {
+export default function PageHeader({ eyebrow, title, copy, aside }) {
   return (
-    <section className="page-header">
-      <span className="eyebrow">{eyebrow}</span>
-      <h1>{title}</h1>
-      <p>{copy}</p>
+    <section className="page-heading">
+      <div>
+        <span>{eyebrow}</span>
+        <h2>{title}</h2>
+        {copy ? <p>{copy}</p> : null}
+      </div>
+      {aside ? <div className="heading-aside">{aside}</div> : null}
     </section>
   );
 }

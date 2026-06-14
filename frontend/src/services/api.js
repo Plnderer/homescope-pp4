@@ -1,65 +1,49 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
-
-function buildUrl(path, params = {}) {
-  const base = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = new URL(`${base}${normalizedPath}`, window.location.origin);
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, value);
-    }
-  });
-
-  return url;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 async function request(path, options = {}) {
-  const { params, ...fetchOptions } = options;
-  const response = await fetch(buildUrl(path, params), {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
-      'Content-Type': 'application/json',
-      ...(fetchOptions.headers || {}),
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
     },
-    ...fetchOptions,
+    ...options,
   });
 
   if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Request failed with status ${response.status}`);
+    const message = await response.text();
+    throw new Error(message || `Request failed with ${response.status}`);
   }
 
   return response.json();
 }
 
 export function getSummary() {
-  return request('/summary');
+  return request("/summary");
 }
 
-export function getFilters(state) {
-  return request('/filters', { params: { state } });
+export function getFilters(state = "All") {
+  const params = new URLSearchParams();
+  if (state) params.set("state", state);
+  return request(`/filters?${params.toString()}`);
 }
 
-export function getMarket(filters) {
-  return request('/market', {
-    params: {
-      state: filters.state,
-      city: filters.city,
-      min_beds: filters.minBeds,
-      min_baths: filters.minBaths,
-      min_sqft: filters.minSqft,
-      max_sqft: filters.maxSqft,
-    },
+export function getMarket(filters = {}) {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, value);
+    }
   });
+  return request(`/market?${params.toString()}`);
 }
 
 export function getModels() {
-  return request('/models');
+  return request("/models");
 }
 
-export function predictFairValue(payload) {
-  return request('/predict', {
-    method: 'POST',
+export function predictListing(payload) {
+  return request("/predict", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

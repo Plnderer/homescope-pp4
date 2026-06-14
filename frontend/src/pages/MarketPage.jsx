@@ -1,126 +1,148 @@
-import { useEffect, useState } from 'react';
-import BarChart from '../components/BarChart.jsx';
-import ChartCard from '../components/ChartCard.jsx';
-import FilterPanel from '../components/FilterPanel.jsx';
-import LineChart from '../components/LineChart.jsx';
-import MetricCard from '../components/MetricCard.jsx';
-import PageHeader from '../components/PageHeader.jsx';
-import ScatterChart from '../components/ScatterChart.jsx';
-import { getFilters, getMarket } from '../services/api.js';
-import { formatCompactCurrency, formatCurrency } from '../utils/formatters.js';
+import { useEffect, useMemo, useState } from "react";
+import BarChart from "../components/BarChart";
+import ChartCard from "../components/ChartCard";
+import LineChart from "../components/LineChart";
+import MetricCard from "../components/MetricCard";
+import PageHeader from "../components/PageHeader";
+import ScatterChart from "../components/ScatterChart";
+import { getFilters, getMarket } from "../services/api";
 
-const defaultFilters = {
-  state: 'All',
-  city: 'All',
-  minBeds: 1,
-  minBaths: 1,
-  minSqft: 500,
-  maxSqft: 6000,
-};
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
-export default function MarketPage({ onNavigate }) {
-  const [filters, setFilters] = useState(defaultFilters);
-  const [options, setOptions] = useState({ states: ['All'], cities: ['All'] });
-  const [marketData, setMarketData] = useState(null);
-  const [status, setStatus] = useState({ loading: true, error: '' });
+function pick(data, keys, fallback = 0) {
+  for (const key of keys) {
+    if (data && data[key] !== undefined && data[key] !== null) return data[key];
+  }
+  return fallback;
+}
+
+function normalizeBars(rows, labelKeys, valueKeys) {
+  return (rows || []).map((item) => ({
+    label: pick(item, labelKeys, item.label),
+    value: pick(item, valueKeys, item.value),
+  }));
+}
+
+export default function MarketPage({ setActivePage }) {
+  const [filters, setFilters] = useState({
+    state: "All",
+    city: "All",
+    min_beds: 1,
+    min_baths: 1,
+    min_sqft: 500,
+    max_sqft: 6000,
+  });
+  const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
+  const [market, setMarket] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let active = true;
-
     getFilters(filters.state)
-      .then((payload) => {
-        if (!active) return;
-        setOptions(payload);
-        if (!payload.cities.includes(filters.city)) {
-          setFilters((current) => ({ ...current, city: 'All' }));
-        }
-      })
-      .catch(() => {
-        if (!active) return;
-        setStatus({ loading: false, error: 'Market filters are unavailable until the backend is running.' });
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [filters.state, filters.city]);
+      .then(setOptions)
+      .catch(() => setError("Could not load filter options from the backend."));
+  }, [filters.state]);
 
   useEffect(() => {
-    let active = true;
-    setStatus({ loading: true, error: '' });
-
+    setLoading(true);
     getMarket(filters)
-      .then((payload) => {
-        if (!active) return;
-        setMarketData(payload);
-        setStatus({ loading: false, error: '' });
+      .then((data) => {
+        setMarket(data);
+        setError("");
       })
-      .catch(() => {
-        if (!active) return;
-        setMarketData(null);
-        setStatus({ loading: false, error: 'Start the FastAPI backend to load market dashboard data.' });
-      });
-
-    return () => {
-      active = false;
-    };
+      .catch(() => setError("Could not load market data. Confirm the backend is running on port 8000."))
+      .finally(() => setLoading(false));
   }, [filters]);
 
-  const updateFilters = (nextFilters) => {
-    if (nextFilters.state !== filters.state) {
-      setFilters({ ...nextFilters, city: 'All' });
-      return;
-    }
-    setFilters(nextFilters);
-  };
+  const histogram = useMemo(() => normalizeBars(pick(market, ["histogram", "histogram_buckets"], []), ["label", "bucket"], ["value", "count"]), [market]);
+  const cityAverages = useMemo(() => normalizeBars(pick(market, ["top_city_averages", "city_averages"], []), ["label", "city"], ["value", "average_price", "avg_price"]), [market]);
+  const scatter = pick(market, ["scatter_points", "price_vs_living_space"], []);
+  const trend = pick(market, ["aspus_trend", "trend"], []);
+
+  function updateFilter(key, value) {
+    setFilters((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "state" ? { city: "All" } : {}),
+    }));
+  }
 
   return (
-    <main>
+    <div className="screen-stack">
       <PageHeader
-        eyebrow="Market Dashboard"
-        title="Read the selected market through simple metrics."
-        copy="Filter housing records and review the market through metric cards, distribution charts, city comparisons, and national price context."
+        eyebrow="Market workspace"
+        title="Filter the housing records and read the selected market at a glance."
+        copy="Use the controls to narrow the dataset, then compare price distribution, city averages, size-price relationship, and national sales price context."
+        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Predict from this context</button>}
       />
 
-      <FilterPanel filters={filters} options={options} onChange={updateFilters} />
-
-      {status.loading ? <section className="status-card">Loading market data...</section> : null}
-      {status.error ? <section className="status-card error">{status.error}</section> : null}
-
-      <section className="metrics-grid section-gap">
-        <MetricCard label="Matching listings" value={(marketData?.matching_count ?? 0).toLocaleString()} tone="teal" />
-        <MetricCard label="Average price" value={formatCompactCurrency(marketData?.average_price ?? 0)} tone="blue" />
-        <MetricCard label="Median price" value={formatCompactCurrency(marketData?.median_price ?? 0)} tone="yellow" />
-        <MetricCard label="Avg $ / sq ft" value={formatCurrency(marketData?.average_price_per_sqft ?? 0)} tone="teal" />
+      <section className="panel control-panel">
+        <div className="panel-heading">
+          <span>Filters</span>
+          <h2>Market selection</h2>
+        </div>
+        <div className="filter-grid">
+          <label>
+            <span>State</span>
+            <select value={filters.state} onChange={(event) => updateFilter("state", event.target.value)}>
+              {(options.states || ["All"]).map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>City</span>
+            <select value={filters.city} onChange={(event) => updateFilter("city", event.target.value)}>
+              {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Minimum beds</span>
+            <input type="number" min="0" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
+          </label>
+          <label>
+            <span>Minimum baths</span>
+            <input type="number" min="0" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
+          </label>
+          <label>
+            <span>Minimum sq ft</span>
+            <input type="number" min="0" value={filters.min_sqft} onChange={(event) => updateFilter("min_sqft", event.target.value)} />
+          </label>
+          <label>
+            <span>Maximum sq ft</span>
+            <input type="number" min="0" value={filters.max_sqft} onChange={(event) => updateFilter("max_sqft", event.target.value)} />
+          </label>
+        </div>
       </section>
 
-      <section className="insight-card">
-        <strong>Why this matters:</strong> price alone can be misleading. HomeScope starts with market size,
-        average price, median price, and price per square foot so the user has context before reviewing a model estimate.
+      {error ? <div className="error-panel">{error}</div> : null}
+      {loading ? <div className="loading-panel">Loading market data...</div> : null}
+
+      <section className="metric-grid">
+        <MetricCard label="Matching listings" value={integer.format(pick(market, ["matching_count", "count"]))} />
+        <MetricCard label="Average price" value={currency.format(pick(market, ["average_price", "avg_price"]))} tone="blue" />
+        <MetricCard label="Median price" value={currency.format(pick(market, ["median_price"]))} tone="gold" />
+        <MetricCard label="Average $ / sq ft" value={currency.format(pick(market, ["average_price_per_sqft", "avg_price_per_sqft"]))} tone="green" />
       </section>
 
       <section className="chart-grid">
-        <ChartCard title="Price Distribution" note="Shows how home prices are spread in the selected market.">
-          <BarChart data={marketData?.price_distribution?.length ? marketData.price_distribution : [{ label: 'No data', value: 1 }]} />
+        <ChartCard title="Price distribution" description="Shows how selected listings are grouped by price bucket.">
+          <BarChart data={histogram} tone="mixed" />
         </ChartCard>
-
-        <ChartCard title="Price vs. Living Space" note="Shows the relationship between home size and price.">
-          <ScatterChart records={marketData?.price_vs_living_space ?? []} />
+        <ChartCard title="Price vs. living space" description="Checks whether larger homes generally command higher prices.">
+          <ScatterChart data={scatter} />
         </ChartCard>
-
-        <ChartCard title="Average Price by City" note="Compares city averages inside the current filter.">
-          <BarChart data={marketData?.city_averages?.length ? marketData.city_averages : [{ label: 'No data', value: 1 }]} valueKey="value" />
+        <ChartCard title="Top city averages" description="Ranks cities inside the current filter by average price.">
+          <BarChart data={cityAverages} tone="mixed" layout="horizontal" />
         </ChartCard>
-
-        <ChartCard title="National Trend Context" note="Shows broader U.S. average sales price movement.">
-          <LineChart data={marketData?.aspus_trend ?? []} />
+        <ChartCard title="National trend context" description="ASPUS gives broad U.S. average sales price movement.">
+          <LineChart data={trend} />
         </ChartCard>
       </section>
 
       <div className="action-row">
-        <button className="secondary-button" onClick={() => onNavigate('Model')}>View Model Evidence</button>
-        <button onClick={() => onNavigate('Predict')}>Predict Fair Value</button>
+        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review model evidence</button>
+        <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Open prediction form</button>
       </div>
-    </main>
+    </div>
   );
 }

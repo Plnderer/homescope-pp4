@@ -1,24 +1,83 @@
-export default function BarChart({ data, valueKey = 'value', labelKey = 'label', tone = 'mixed' }) {
-  const maxValue = Math.max(...data.map((item) => item[valueKey]), 1);
-  const tones = ['teal', 'blue', 'yellow', 'blue', 'teal'];
+import { useState } from "react";
+
+function compact(value) {
+  const number = Number(value) || 0;
+  if (Math.abs(number) >= 1000000) return `$${(number / 1000000).toFixed(1)}M`;
+  if (Math.abs(number) >= 1000) return `$${Math.round(number / 1000)}K`;
+  return Number.isInteger(number) ? `${number}` : number.toFixed(1);
+}
+
+function cleanLabel(label) {
+  const text = String(label || "");
+  return text.length > 28 ? `${text.slice(0, 25)}...` : text;
+}
+
+export default function BarChart({ data = [], tone = "mixed", layout = "vertical" }) {
+  const [active, setActive] = useState(null);
+  const rows = data.filter((item) => Number(item.value) > 0).slice(0, 8);
+
+  if (!rows.length) {
+    return <div className="empty-visual">No chart data available.</div>;
+  }
+
+  const max = Math.max(...rows.map((item) => Number(item.value) || 0), 1);
+  const colors = ["teal", "blue", "gold", "green", "coral"];
+  const useList = layout === "horizontal" || rows.some((item) => String(item.label || "").length > 18);
+
+  if (useList) {
+    return (
+      <div className="interactive-chart">
+        <div className="chart-readout">
+          <span>{active?.label || "Hover a bar"}</span>
+          <strong>{active ? compact(active.value) : "Inspect values"}</strong>
+        </div>
+        <div className="bar-list" role="img" aria-label="Horizontal bar chart">
+        {rows.map((item, index) => {
+          const width = `${Math.max(4, ((Number(item.value) || 0) / max) * 100)}%`;
+          const color = tone === "mixed" ? colors[index % colors.length] : tone;
+          return (
+            <div
+              className={`bar-list-row ${active?.label === item.label ? "active" : ""}`}
+              key={`${item.label}-${index}`}
+              onMouseEnter={() => setActive(item)}
+              onFocus={() => setActive(item)}
+              tabIndex="0"
+            >
+              <span className="bar-list-label" title={item.label}>{cleanLabel(item.label)}</span>
+              <div className="bar-list-track">
+                <span className={`bar-list-fill ${color}`} style={{ width }} />
+              </div>
+              <strong>{compact(item.value)}</strong>
+            </div>
+          );
+        })}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bar-chart" role="img" aria-label="Bar chart visualization">
-      <div className="chart-grid-lines">
-        <span />
-        <span />
-        <span />
+    <div className="interactive-chart">
+      <div className="chart-readout">
+        <span>{active?.label || "Hover a bar"}</span>
+        <strong>{active ? compact(active.value) : "Inspect values"}</strong>
       </div>
-
-      <div className="bars">
-        {data.map((item, index) => {
-          const height = Math.max((item[valueKey] / maxValue) * 100, 8);
-          const barTone = tone === 'mixed' ? tones[index % tones.length] : tone;
-
+      <div className="bar-chart" role="img" aria-label="Vertical bar chart">
+        {rows.map((item, index) => {
+          const height = `${Math.max(8, ((Number(item.value) || 0) / max) * 100)}%`;
+          const color = tone === "mixed" ? colors[index % colors.length] : tone;
           return (
-            <div className="bar-item" key={`${item[labelKey]}-${index}`}>
-              <div className={`bar bar-${barTone}`} style={{ height: `${height}%` }} />
-              <span>{item[labelKey]}</span>
+            <div
+              className={`bar-column ${active?.label === item.label ? "active" : ""}`}
+              key={`${item.label}-${index}`}
+              onMouseEnter={() => setActive(item)}
+              onFocus={() => setActive(item)}
+              tabIndex="0"
+            >
+              <div className="bar-stage">
+                <span className={`bar ${color}`} style={{ height }} />
+              </div>
+              <span title={item.label}>{cleanLabel(item.label)}</span>
             </div>
           );
         })}

@@ -1,194 +1,175 @@
-import { useEffect, useState } from 'react';
-import BarChart from '../components/BarChart.jsx';
-import ChartCard from '../components/ChartCard.jsx';
-import MetricCard from '../components/MetricCard.jsx';
-import PageHeader from '../components/PageHeader.jsx';
-import { getFilters, predictFairValue } from '../services/api.js';
-import { formatCompactCurrency } from '../utils/formatters.js';
+import { useEffect, useMemo, useState } from "react";
+import BarChart from "../components/BarChart";
+import ChartCard from "../components/ChartCard";
+import MetricCard from "../components/MetricCard";
+import PageHeader from "../components/PageHeader";
+import { getFilters, predictListing } from "../services/api";
 
-export default function PredictPage() {
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+function pick(data, keys, fallback = undefined) {
+  for (const key of keys) {
+    if (data && data[key] !== undefined && data[key] !== null) return data[key];
+  }
+  return fallback;
+}
+
+function formatAssumption(item) {
+  if (typeof item === "string") return item;
+  if (Array.isArray(item)) return item.join(": ");
+  if (item && typeof item === "object") {
+    return Object.entries(item).map(([key, value]) => `${key}: ${value}`).join(", ");
+  }
+  return String(item);
+}
+
+export default function PredictPage({ setActivePage }) {
+  const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
   const [form, setForm] = useState({
-    state: '',
-    city: '',
-    county: '',
+    state: "New York",
+    city: "New York",
+    county: "",
     beds: 3,
     baths: 2,
-    livingSpace: 1800,
-    listingPrice: 725000,
+    living_space: 1800,
+    listing_price: 725000,
   });
-  const [options, setOptions] = useState({ states: [], cities: [] });
-  const [status, setStatus] = useState({ loading: true, predicting: false, error: '' });
   const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    let active = true;
-
-    getFilters()
-      .then((payload) => {
-        if (!active) return;
-        const states = payload.states.filter((state) => state !== 'All');
-        const defaultState = states.includes('New York') ? 'New York' : states[0] ?? '';
-        setOptions({ states, cities: [] });
-        setForm((current) => ({ ...current, state: defaultState }));
-      })
-      .catch(() => {
-        if (!active) return;
-        setStatus({ loading: false, predicting: false, error: 'Prediction filters are unavailable until the backend is running.' });
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!form.state) return;
-    let active = true;
-
     getFilters(form.state)
-      .then((payload) => {
-        if (!active) return;
-        const cities = payload.cities.filter((city) => city !== 'All');
-        const defaultCity = cities.includes('New York') ? 'New York' : cities[0] ?? '';
-        setOptions((current) => ({ ...current, cities }));
-        setForm((current) => ({
-          ...current,
-          city: cities.includes(current.city) ? current.city : defaultCity,
-        }));
-        setStatus((current) => ({ ...current, loading: false, error: '' }));
-      })
-      .catch(() => {
-        if (!active) return;
-        setStatus({ loading: false, predicting: false, error: 'Prediction cities are unavailable until the backend is running.' });
-      });
-
-    return () => {
-      active = false;
-    };
+      .then(setOptions)
+      .catch(() => setError("Could not load prediction filters from the backend."));
   }, [form.state]);
 
-  const update = (key, value) => {
-    if (key === 'state') {
-      setForm({ ...form, state: value, city: '' });
-      return;
-    }
+  function updateField(key, value) {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "state" ? { city: "All" } : {}),
+    }));
+  }
 
-    setForm({ ...form, [key]: value });
-  };
-
-  const runPrediction = async (event) => {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    setStatus({ loading: false, predicting: true, error: '' });
-    setResult(null);
-
+    setLoading(true);
+    setError("");
     try {
-      const payload = await predictFairValue({
-        state: form.state,
-        city: form.city,
-        county: form.county || null,
-        beds: form.beds,
-        baths: form.baths,
-        living_space: form.livingSpace,
-        listing_price: form.listingPrice,
-      });
-      setResult(payload);
-      setStatus({ loading: false, predicting: false, error: '' });
+      const payload = {
+        ...form,
+        beds: Number(form.beds),
+        baths: Number(form.baths),
+        living_space: Number(form.living_space),
+        listing_price: Number(form.listing_price),
+        county: form.county || undefined,
+      };
+      setResult(await predictListing(payload));
     } catch {
-      setStatus({
-        loading: false,
-        predicting: false,
-        error: 'Start the FastAPI backend and make sure the model artifact or training fallback is available.',
-      });
+      setError("Prediction failed. Confirm the backend is running and the selected market has enough records.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+
+  const predicted = pick(result, ["predicted_fair_value", "predicted_value", "prediction"], 0);
+  const listing = pick(result, ["listing_price"], form.listing_price);
+  const difference = result ? pick(result, ["difference"], predicted - listing) : 0;
+  const percent = pick(result, ["percent_difference", "percentage_difference"], 0);
+  const marketLabel = pick(result, ["market_label", "label"], "Run a prediction");
+  const modelName = pick(result, ["selected_model_name", "model_name"], "Model pending");
+  const assumptions = pick(result, ["assumptions_used", "assumptions"], []);
+  const comparisonBars = useMemo(() => result ? [
+    { label: "Predicted fair value", value: Number(predicted) || 0 },
+    { label: "Listing price", value: Number(listing) || 0 },
+  ] : [], [result, predicted, listing]);
 
   return (
-    <main>
+    <div className="screen-stack">
       <PageHeader
-        eyebrow="Predict Fair Value"
+        eyebrow="Prediction workspace"
         title="Compare a sample listing against the selected model."
-        copy="The React form now calls the Python model service and compares the model estimate against a user-entered listing price."
+        copy="The form fills hidden model inputs from the selected market and returns a fair-value estimate, comparison signal, assumptions, and limitation notes."
+        aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review model first</button>}
       />
 
-      <form className="prediction-form" onSubmit={runPrediction}>
-        <label>
-          State
-          <select value={form.state} onChange={(event) => update('state', event.target.value)}>
-            {options.states.map((state) => <option key={state}>{state}</option>)}
-          </select>
-        </label>
+      {error ? <div className="error-panel">{error}</div> : null}
 
-        <label>
-          City
-          <select value={form.city} onChange={(event) => update('city', event.target.value)}>
-            {options.cities.map((city) => <option key={city}>{city}</option>)}
-          </select>
-        </label>
-
-        <label>
-          County optional
-          <input value={form.county} onChange={(event) => update('county', event.target.value)} placeholder="Use city median county" />
-        </label>
-
-        <label>
-          Beds
-          <input type="number" min="0" value={form.beds} onChange={(event) => update('beds', Number(event.target.value))} />
-        </label>
-
-        <label>
-          Baths
-          <input type="number" min="0" value={form.baths} onChange={(event) => update('baths', Number(event.target.value))} />
-        </label>
-
-        <label>
-          Living Space
-          <input type="number" min="300" step="50" value={form.livingSpace} onChange={(event) => update('livingSpace', Number(event.target.value))} />
-        </label>
-
-        <label>
-          Listing Price
-          <input type="number" min="10000" step="5000" value={form.listingPrice} onChange={(event) => update('listingPrice', Number(event.target.value))} />
-        </label>
-
-        <button type="submit" disabled={status.loading || status.predicting || !form.state || !form.city}>
-          {status.predicting ? 'Predicting...' : 'Predict Fair Value'}
-        </button>
-      </form>
-
-      {status.loading ? <section className="status-card">Loading prediction filters...</section> : null}
-      {status.error ? <section className="status-card error">{status.error}</section> : null}
-
-      {result ? (
-        <section className="prediction-results">
-          <div className="metrics-grid three-columns">
-            <MetricCard label="Predicted fair value" value={formatCompactCurrency(result.predicted_fair_value)} tone="teal" />
-            <MetricCard label="Listing price" value={formatCompactCurrency(form.listingPrice)} tone="blue" />
-            <MetricCard label="Market label" value={result.market_label} tone={result.difference > 0 ? 'danger' : 'yellow'} />
+      <section className="prediction-layout">
+        <form className="panel prediction-card" onSubmit={handleSubmit}>
+          <div className="panel-heading">
+            <span>Listing inputs</span>
+            <h2>Sample property</h2>
           </div>
+          <div className="form-grid">
+            <label>
+              <span>State</span>
+              <select value={form.state} onChange={(event) => updateField("state", event.target.value)}>
+                {(options.states || ["All"]).map((state) => <option key={state} value={state}>{state}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>City</span>
+              <select value={form.city} onChange={(event) => updateField("city", event.target.value)}>
+                {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>County optional</span>
+              <input value={form.county} placeholder="Use market default" onChange={(event) => updateField("county", event.target.value)} />
+            </label>
+            <label>
+              <span>Beds</span>
+              <input type="number" min="0" value={form.beds} onChange={(event) => updateField("beds", event.target.value)} />
+            </label>
+            <label>
+              <span>Baths</span>
+              <input type="number" min="0" value={form.baths} onChange={(event) => updateField("baths", event.target.value)} />
+            </label>
+            <label>
+              <span>Living space</span>
+              <input type="number" min="0" value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
+            </label>
+            <label>
+              <span>Listing price</span>
+              <input type="number" min="0" value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
+            </label>
+          </div>
+          <button type="submit" className="primary-button" disabled={loading}>
+            {loading ? "Estimating..." : "Predict fair value"}
+          </button>
+        </form>
 
-          <section className="insight-card">
-            <strong>Result explanation:</strong> The listing is {Math.abs(result.percent_difference).toFixed(1)}% {result.difference > 0 ? 'above' : 'below'} the estimated fair value from {result.selected_model_name}. This is a model estimate, not a final appraisal.
-            {' '}Hidden fields used {result.assumptions.source} for {result.assumptions.county} County.
-          </section>
+        <aside className="result-stack">
+          <MetricCard label="Predicted fair value" value={result ? currency.format(predicted) : "Pending"} />
+          <MetricCard label="Listing price" value={currency.format(listing)} tone="blue" />
+          <MetricCard label="Difference" value={result ? currency.format(difference) : "Pending"} detail={result ? `${Number(percent || 0).toFixed(1)}% from estimate` : "Submit the form to compare"} tone="gold" />
+          <article className="panel result-label">
+            <span>Market label</span>
+            <strong>{marketLabel}</strong>
+            <p>Generated by {modelName}</p>
+          </article>
+        </aside>
+      </section>
 
-          <ChartCard title="Predicted Value vs. Listing Price" note="This comparison translates the estimate into a simple visual result.">
-            <BarChart
-              data={[
-                { label: 'Predicted', value: result.predicted_fair_value },
-                { label: 'Listing', value: form.listingPrice },
-              ]}
-              tone="mixed"
-            />
-          </ChartCard>
-
-          {result.limitations?.length ? (
-            <section className="insight-card">
-              <strong>Model limitations:</strong> {result.limitations.join(' ')}
-            </section>
-          ) : null}
-        </section>
-      ) : null}
-    </main>
+      <section className="chart-grid">
+        <ChartCard title="Estimate comparison" description="A direct comparison between model value and entered listing price.">
+          <BarChart data={comparisonBars} tone="mixed" layout="horizontal" />
+        </ChartCard>
+        <article className="panel assumptions-panel">
+          <div className="panel-heading">
+            <span>Assumptions</span>
+            <h2>Hidden fields filled from market data</h2>
+            <p>The backend uses selected market medians and common county values when fields are not entered directly.</p>
+          </div>
+          <ul>
+            {(result ? (Array.isArray(assumptions) ? assumptions : Object.entries(assumptions || {}).map(([key, value]) => [key, value])) : ["Assumptions appear after a prediction is submitted."]).map((item) => (
+              <li key={formatAssumption(item)}>{formatAssumption(item)}</li>
+            ))}
+          </ul>
+        </article>
+      </section>
+    </div>
   );
 }
