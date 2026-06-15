@@ -1,17 +1,25 @@
 import { useState } from "react";
 
-function compact(value) {
+function compact(value, format = "currency") {
   const number = Number(value) || 0;
-  if (Math.abs(number) >= 1000000) return `$${(number / 1000000).toFixed(1)}M`;
-  if (Math.abs(number) >= 1000) return `$${Math.round(number / 1000)}K`;
+  const prefix = format === "currency" ? "$" : "";
+  if (Math.abs(number) >= 1000000) return `${prefix}${(number / 1000000).toFixed(1)}M`;
+  if (Math.abs(number) >= 1000) return `${prefix}${Math.round(number / 1000)}K`;
   return Number.isInteger(number) ? `${number}` : number.toFixed(1);
+}
+
+function formatReadout(point, residual) {
+  if (!point) return { x: residual ? "Hover residual" : "Hover point", y: "Inspect points" };
+  if (residual) return { x: `Predicted ${compact(point.x)}`, y: `Residual ${compact(point.y)}` };
+  return { x: `${compact(point.x, "number")} sq ft`, y: compact(point.y) };
 }
 
 export default function ScatterChart({ data = [], residual = false }) {
   const [active, setActive] = useState(null);
+  const readout = formatReadout(active, residual);
   const rows = data
     .map((item) => ({
-      x: Number(item.x ?? item.living_space ?? item.predicted_price ?? item.predicted),
+      x: Number(item.x ?? item.sqft ?? item.living_space ?? item.predicted_price ?? item.predicted),
       y: Number(item.y ?? item.price ?? item.residual),
     }))
     .filter((item) => Number.isFinite(item.x) && Number.isFinite(item.y))
@@ -38,8 +46,8 @@ export default function ScatterChart({ data = [], residual = false }) {
   return (
     <div className="interactive-chart">
       <div className="chart-readout">
-        <span>{active ? `X ${compact(active.x)}` : residual ? "Hover residual" : "Hover point"}</span>
-        <strong>{active ? `Y ${compact(active.y)}` : "Inspect points"}</strong>
+        <span>{readout.x}</span>
+        <strong>{readout.y}</strong>
       </div>
       <svg className="scatter-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={residual ? "Residual scatter plot" : "Scatter plot"}>
         {[0.25, 0.5, 0.75].map((tick) => (

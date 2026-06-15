@@ -23,12 +23,22 @@ class PredictionAssumptions(BaseModel):
     source: str
 
 
+class FairValueRange(BaseModel):
+    low: float
+    high: float
+
+
 class PredictionResponse(BaseModel):
     predicted_fair_value: float
     listing_price: float
     difference: float
     percent_difference: float
     selected_model_name: str
+    model_mae: float | None = None
+    fair_value_range: FairValueRange
+    signal: str
+    result_explanation: str
+    model_error_context: str
     market_label: str
     assumptions: PredictionAssumptions
     limitations: list[str]

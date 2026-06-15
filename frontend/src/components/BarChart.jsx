@@ -1,9 +1,10 @@
 import { useState } from "react";
 
-function compact(value) {
+function compact(value, format = "currency") {
   const number = Number(value) || 0;
-  if (Math.abs(number) >= 1000000) return `$${(number / 1000000).toFixed(1)}M`;
-  if (Math.abs(number) >= 1000) return `$${Math.round(number / 1000)}K`;
+  const prefix = format === "currency" ? "$" : "";
+  if (Math.abs(number) >= 1000000) return `${prefix}${(number / 1000000).toFixed(1)}M`;
+  if (Math.abs(number) >= 1000) return `${prefix}${Math.round(number / 1000)}K`;
   return Number.isInteger(number) ? `${number}` : number.toFixed(1);
 }
 
@@ -12,7 +13,7 @@ function cleanLabel(label) {
   return text.length > 28 ? `${text.slice(0, 25)}...` : text;
 }
 
-export default function BarChart({ data = [], tone = "mixed", layout = "vertical" }) {
+export default function BarChart({ data = [], tone = "mixed", layout = "vertical", format = "currency" }) {
   const [active, setActive] = useState(null);
   const rows = data.filter((item) => Number(item.value) > 0).slice(0, 8);
 
@@ -29,7 +30,7 @@ export default function BarChart({ data = [], tone = "mixed", layout = "vertical
       <div className="interactive-chart">
         <div className="chart-readout">
           <span>{active?.label || "Hover a bar"}</span>
-          <strong>{active ? compact(active.value) : "Inspect values"}</strong>
+          <strong>{active ? compact(active.value, format) : "Inspect values"}</strong>
         </div>
         <div className="bar-list" role="img" aria-label="Horizontal bar chart">
         {rows.map((item, index) => {
@@ -47,7 +48,7 @@ export default function BarChart({ data = [], tone = "mixed", layout = "vertical
               <div className="bar-list-track">
                 <span className={`bar-list-fill ${color}`} style={{ width }} />
               </div>
-              <strong>{compact(item.value)}</strong>
+              <strong>{compact(item.value, format)}</strong>
             </div>
           );
         })}
@@ -60,7 +61,7 @@ export default function BarChart({ data = [], tone = "mixed", layout = "vertical
     <div className="interactive-chart">
       <div className="chart-readout">
         <span>{active?.label || "Hover a bar"}</span>
-        <strong>{active ? compact(active.value) : "Inspect values"}</strong>
+        <strong>{active ? compact(active.value, format) : "Inspect values"}</strong>
       </div>
       <div className="bar-chart" role="img" aria-label="Vertical bar chart">
         {rows.map((item, index) => {

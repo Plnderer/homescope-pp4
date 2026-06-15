@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -78,6 +78,12 @@ def train_models(df: pd.DataFrame, sample_size: int = 8000, random_state: int = 
             max_depth=14,
             random_state=random_state,
             n_jobs=-1,
+        ),
+        "Gradient Boosting Regressor": GradientBoostingRegressor(
+            n_estimators=120,
+            learning_rate=0.06,
+            max_depth=3,
+            random_state=random_state,
         ),
     }
 

@@ -77,6 +77,19 @@ def test_market_endpoint_returns_dashboard_chart_payloads():
     assert {"label", "value"} <= set(payload["aspus_trend"][0])
 
 
+def test_preview_origin_can_call_backend():
+    response = client.options(
+        "/api/summary",
+        headers={
+            "Origin": "http://127.0.0.1:4173",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+
+
 def test_models_endpoint_returns_comparison_and_residuals(monkeypatch):
     monkeypatch.setattr(main.model_service, "get_model_bundle", fake_model_bundle)
     monkeypatch.setattr(
@@ -94,6 +107,15 @@ def test_models_endpoint_returns_comparison_and_residuals(monkeypatch):
     assert payload["models"][0]["mae"] > 0
     assert payload["residual_points"]
     assert {"predicted_price", "residual"} <= set(payload["residual_points"][0])
+    assert payload["selected_model"]["name"] == "Random Forest Regressor"
+    assert "lowest MAE" in payload["selected_model"]["reason"]
+    assert payload["model_detail"]["rows_trained"] is None
+    assert payload["model_detail"]["features_used"] == 6
+    assert payload["error_by_price_range"]
+    assert {"label", "mae", "count"} <= set(payload["error_by_price_range"][0])
+    assert payload["prediction_examples"]["close"]
+    assert payload["prediction_examples"]["too_high"]
+    assert payload["prediction_examples"]["too_low"]
     assert "research estimate" in payload["limitations"][0].lower()
 
 
@@ -119,5 +141,10 @@ def test_predict_endpoint_uses_model_and_market_defaults(monkeypatch):
     assert payload["difference"] == 40000.0
     assert payload["percent_difference"] == 10.0
     assert payload["selected_model_name"] == "Random Forest Regressor"
+    assert payload["model_mae"] == 145000.0
+    assert payload["fair_value_range"]["low"] == 255000.0
+    assert payload["fair_value_range"]["high"] == 545000.0
+    assert payload["signal"] == "Near average / fair range"
+    assert "within the model's average error band" in payload["result_explanation"]
     assert payload["market_label"]
     assert payload["assumptions"]["county"]

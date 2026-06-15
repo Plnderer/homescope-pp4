@@ -56,6 +56,38 @@ def _residual_points(bundle: dict, limit: int = 120) -> list[dict]:
     ]
 
 
+def _feature_importance(bundle: dict, limit: int = 8) -> list[dict]:
+    pipeline = bundle["best_pipeline"]
+    estimator = pipeline.named_steps.get("model")
+    importances = getattr(estimator, "feature_importances_", None)
+    if importances is None:
+        return []
+
+    preprocessor = pipeline.named_steps.get("preprocessor")
+    try:
+        transformed_names = list(preprocessor.get_feature_names_out())
+    except Exception:
+        transformed_names = list(bundle["feature_columns"])
+
+    feature_scores: dict[str, float] = {}
+    sorted_columns = sorted(bundle["feature_columns"], key=len, reverse=True)
+    for raw_name, score in zip(transformed_names, importances):
+        cleaned = str(raw_name).split("__", 1)[-1]
+        feature = next(
+            (
+                column
+                for column in sorted_columns
+                if cleaned == column or cleaned.startswith(f"{column}_")
+            ),
+            cleaned,
+        )
+        feature_scores[feature] = feature_scores.get(feature, 0.0) + float(score)
+
+    total = sum(feature_scores.values()) or 1.0
+    ranked = sorted(feature_scores.items(), key=lambda item: item[1], reverse=True)[:limit]
+    return [{"label": feature, "value": float(score / total)} for feature, score in ranked]
+
+
 def main() -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     clean_df = clean_housing_data(load_housing_data(HOUSING_PATH))
@@ -74,6 +106,7 @@ def main() -> None:
         ],
         "dataset_row_count_after_cleaning": int(len(clean_df)),
         "residual_points": _residual_points(bundle),
+        "feature_importance": _feature_importance(bundle),
         "limitations": LIMITATIONS,
     }
     METADATA_PATH.write_text(json.dumps(metadata, indent=2), encoding="utf-8")

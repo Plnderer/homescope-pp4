@@ -49,8 +49,8 @@ def clean_housing_data(df: pd.DataFrame) -> pd.DataFrame:
     # Remove impossible or extremely suspicious values before percentile capping.
     clean = clean[
         (clean["Price"] > 10_000)
-        & (clean["Beds"] >= 0)
-        & (clean["Baths"] >= 0)
+        & (clean["Beds"] > 0)
+        & (clean["Baths"] > 0)
         & (clean["Living Space"] > 100)
     ].copy()
 

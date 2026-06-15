@@ -7,6 +7,7 @@ import ScatterChart from "../components/ScatterChart";
 import { getModels } from "../services/api";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 
 function pick(data, keys, fallback = undefined) {
   for (const key of keys) {
@@ -37,6 +38,20 @@ function normalizeMetrics(models) {
     .filter((item) => item.mae !== undefined || item.rmse !== undefined || item.r2 !== undefined);
 }
 
+function formatDate(value) {
+  if (!value) return "Not recorded";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatExample(example) {
+  const actual = currency.format(example.actual_price || 0);
+  const predicted = currency.format(example.predicted_price || 0);
+  const error = currency.format(Math.abs(example.residual || 0));
+  return `${actual} actual vs ${predicted} predicted (${error} error)`;
+}
+
 export default function ModelPage({ setActivePage }) {
   const [modelData, setModelData] = useState(null);
   const [error, setError] = useState("");
@@ -56,16 +71,21 @@ export default function ModelPage({ setActivePage }) {
   const bestModel = pick(modelData, ["best_model_name", "selected_model", "model_name"], "Not available");
   const artifact = pick(modelData, ["artifact_metadata", "metadata"], {});
   const residuals = pick(modelData, ["residual_sample_points", "residual_points", "residuals"], []);
-  const linear = metrics.find((item) => String(item.name || "").toLowerCase().includes("linear")) || {};
-  const forest = metrics.find((item) => String(item.name || "").toLowerCase().includes("forest")) || metrics[1] || {};
+  const selectedModel = pick(modelData, ["selected_model"], {});
+  const modelDetail = pick(modelData, ["model_detail"], {});
+  const featureImportance = pick(modelData, ["feature_importance"], []);
+  const errorByRange = pick(modelData, ["error_by_price_range"], []);
+  const examples = pick(modelData, ["prediction_examples"], {});
+  const bestMae = selectedModel?.best_mae ?? modelDetail?.best_mae;
   const maeBars = metrics.map((item) => ({ label: item.name || item.model || "Model", value: item.mae ?? item.MAE }));
+  const errorBars = errorByRange.map((item) => ({ label: item.label, value: item.mae }));
 
   return (
     <div className="screen-stack">
       <PageHeader
-        eyebrow="Model evidence"
-        title="Show the error profile before showing the prediction."
-        copy="This page keeps model performance, artifact metadata, feature assumptions, and limitations visible so the estimate is framed as research support rather than an appraisal."
+        eyebrow="Model dashboard"
+        title="The prediction model is the product surface."
+        copy="Compare candidate models, inspect the selected model, and keep the model's error profile visible before using a fair-value estimate."
         aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Use selected model</button>}
       />
 
@@ -73,16 +93,92 @@ export default function ModelPage({ setActivePage }) {
       {loading ? <div className="loading-panel">Loading model evidence...</div> : null}
 
       <section className="metric-grid">
-        <MetricCard label="Linear Regression MAE" value={currency.format(linear.mae ?? linear.MAE ?? 0)} tone="blue" />
-        <MetricCard label="Random Forest MAE" value={currency.format(forest.mae ?? forest.MAE ?? 0)} />
         <MetricCard label="Selected model" value={bestModel} tone="gold" />
-        <MetricCard label="Artifact" value={artifact?.trained_at ? "Saved" : "Fallback"} detail={artifact?.trained_at || "In-memory model available"} tone="green" />
+        <MetricCard label="Best MAE" value={currency.format(bestMae ?? 0)} detail="Average dollar error on test listings" />
+        <MetricCard label="Rows trained" value={(modelDetail?.rows_trained ?? artifact?.dataset_row_count_after_cleaning ?? 0).toLocaleString()} tone="blue" />
+        <MetricCard label="Features used" value={modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} tone="green" />
+      </section>
+
+      <section className="model-comparison-grid">
+        {metrics.length ? metrics.map((item) => {
+          const isSelected = item.name === bestModel;
+          return (
+            <article className={`model-comparison-card ${isSelected ? "selected" : ""}`} key={item.name}>
+              <div>
+                <span>{isSelected ? "Selected by MAE" : "Candidate model"}</span>
+                <h3>{item.name}</h3>
+              </div>
+              <dl>
+                <div>
+                  <dt>MAE</dt>
+                  <dd>{currency.format(item.mae ?? 0)}</dd>
+                </div>
+                <div>
+                  <dt>RMSE</dt>
+                  <dd>{currency.format(item.rmse ?? 0)}</dd>
+                </div>
+                <div>
+                  <dt>R2</dt>
+                  <dd>{Number(item.r2 ?? 0).toFixed(3)}</dd>
+                </div>
+              </dl>
+            </article>
+          );
+        }) : <div className="empty-visual">No model metrics were returned by the backend.</div>}
+      </section>
+
+      <section className="model-evidence-layout">
+        <article className="panel selected-model-panel">
+          <div className="panel-heading">
+            <span>Selected model</span>
+            <h2>{selectedModel?.name || bestModel}</h2>
+            <p>{selectedModel?.reason || "The backend did not return a selected-model explanation."}</p>
+          </div>
+          <div className="model-detail-grid">
+            <div>
+              <span>Artifact</span>
+              <strong>{modelDetail?.artifact_loaded || artifact?.artifact_loaded ? "Saved model loaded" : "In-memory fallback"}</strong>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong>{modelDetail?.source || artifact?.source || "Unknown"}</strong>
+            </div>
+            <div>
+              <span>Best MAE</span>
+              <strong>{currency.format(bestMae ?? 0)}</strong>
+            </div>
+            <div>
+              <span>Feature count</span>
+              <strong>{modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article className="panel feature-importance-panel">
+          <div className="panel-heading">
+            <span>Feature importance</span>
+            <h2>What drives the selected model</h2>
+          </div>
+          {featureImportance.length ? (
+            <div className="importance-list">
+              {featureImportance.map((item) => (
+                <div className="importance-row" key={item.label}>
+                  <span>{item.label}</span>
+                  <div><i style={{ width: `${Math.max(4, Number(item.value || 0) * 100)}%` }} /></div>
+                  <strong>{percent.format(item.value || 0)}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-visual">Feature importance is available when the selected model exposes importance scores.</div>
+          )}
+        </article>
       </section>
 
       <section className="panel model-table-card">
         <div className="panel-heading">
-          <span>Comparison</span>
-          <h2>Model metrics</h2>
+          <span>Full comparison</span>
+          <h2>MAE, RMSE, and R2</h2>
         </div>
         {metrics.length ? (
           <div className="model-table">
@@ -110,9 +206,39 @@ export default function ModelPage({ setActivePage }) {
         <ChartCard title="MAE by model" description="Lower MAE means the model made smaller average dollar errors on the test split.">
           <BarChart data={maeBars} tone="mixed" layout="horizontal" />
         </ChartCard>
+        <ChartCard title="Error by price range" description="Average residual size grouped by actual sale/listing price bands.">
+          <BarChart data={errorBars} tone="coral" layout="horizontal" />
+        </ChartCard>
+      </section>
+
+      <section className="chart-grid">
         <ChartCard title="Residual plot" description="Residuals near zero are better; wide spread flags higher uncertainty.">
           <ScatterChart data={residuals} residual />
         </ChartCard>
+        <article className="panel prediction-examples-panel">
+          <div className="panel-heading">
+            <span>Prediction examples</span>
+            <h2>Close, too high, and too low</h2>
+          </div>
+          <div className="example-columns">
+            {[
+              ["Close", examples.close || []],
+              ["Predicted too high", examples.too_high || []],
+              ["Predicted too low", examples.too_low || []],
+            ].map(([label, rows]) => (
+              <div key={label}>
+                <strong>{label}</strong>
+                {rows.length ? (
+                  <ul>
+                    {rows.slice(0, 3).map((item) => <li key={`${label}-${item.actual_price}-${item.predicted_price}`}>{formatExample(item)}</li>)}
+                  </ul>
+                ) : (
+                  <p>No examples in the current residual sample.</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className="panel limitations-panel">

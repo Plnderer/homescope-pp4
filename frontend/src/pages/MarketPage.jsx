@@ -55,15 +55,17 @@ export default function MarketPage({ setActivePage }) {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const histogram = useMemo(() => normalizeBars(pick(market, ["histogram", "histogram_buckets"], []), ["label", "bucket"], ["value", "count"]), [market]);
+  const histogram = useMemo(() => normalizeBars(pick(market, ["price_distribution", "histogram", "histogram_buckets"], []), ["label", "bucket"], ["value", "count"]), [market]);
   const cityAverages = useMemo(() => normalizeBars(pick(market, ["top_city_averages", "city_averages"], []), ["label", "city"], ["value", "average_price", "avg_price"]), [market]);
   const scatter = pick(market, ["scatter_points", "price_vs_living_space"], []);
   const trend = pick(market, ["aspus_trend", "trend"], []);
 
   function updateFilter(key, value) {
+    const nextValue = ["min_beds", "min_baths"].includes(key) ? Math.max(1, Number(value) || 1) : value;
+
     setFilters((current) => ({
       ...current,
-      [key]: value,
+      [key]: nextValue,
       ...(key === "state" ? { city: "All" } : {}),
     }));
   }
@@ -96,12 +98,12 @@ export default function MarketPage({ setActivePage }) {
             </select>
           </label>
           <label>
-            <span>Minimum beds</span>
-            <input type="number" min="0" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
+            <span>Minimum beds (1+)</span>
+            <input type="number" min="1" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
           </label>
           <label>
-            <span>Minimum baths</span>
-            <input type="number" min="0" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
+            <span>Minimum baths (1+)</span>
+            <input type="number" min="1" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
           </label>
           <label>
             <span>Minimum sq ft</span>
@@ -126,7 +128,7 @@ export default function MarketPage({ setActivePage }) {
 
       <section className="chart-grid">
         <ChartCard title="Price distribution" description="Shows how selected listings are grouped by price bucket.">
-          <BarChart data={histogram} tone="mixed" />
+          <BarChart data={histogram} tone="mixed" format="number" />
         </ChartCard>
         <ChartCard title="Price vs. living space" description="Checks whether larger homes generally command higher prices.">
           <ScatterChart data={scatter} />
