@@ -132,6 +132,7 @@ def get_market(
     max_sqft: int | None = None,
 ) -> dict:
     df = get_housing_data()
+    effective_max_sqft = max_sqft if max_sqft and max_sqft > 0 else None
     filtered = filter_market_data(
         df,
         state=state or "All",
@@ -139,7 +140,7 @@ def get_market(
         min_beds=min_beds or 0,
         min_baths=min_baths or 0,
         min_sqft=min_sqft or 0,
-        max_sqft=max_sqft,
+        max_sqft=effective_max_sqft,
     )
 
     return {

@@ -1,24 +1,24 @@
 # HomeScope
 
-HomeScope is a housing price analytics app built for Project & Portfolio IV. It started as a Streamlit proof of concept and now includes a FastAPI backend, saved model workflow, and a redesigned React/Vite frontend.
+HomeScope is a housing intelligence app for exploring market context, reviewing model evidence, and estimating a listing's fair value. The project uses a Python data and modeling pipeline, a FastAPI backend, and a React/Vite frontend.
 
-The app helps a user move through a simple question: what does the market say about this listing before I trust a model estimate?
+The main flow is simple: look at the market, review how the model performs, then compare a sample listing against the selected model.
 
-## What the App Does
+## What It Does
 
 - Loads and cleans U.S. housing records from the project data files.
 - Shows market summaries by state, city, bedrooms, bathrooms, and living space.
 - Compares average price, median price, price per square foot, price distribution, city averages, and national ASPUS trend context.
-- Trains and evaluates Linear Regression and Random Forest models.
-- Saves the best model artifact and metadata for repeatable backend predictions.
-- Predicts a fair-value estimate for a sample listing and explains the assumptions used.
-- Presents the React app as a portfolio-ready product experience with a landing-style overview, interactive charts, and cleaner page flows.
+- Trains Linear Regression, Random Forest, and Gradient Boosting models.
+- Selects the best model by MAE and saves the model artifact for repeatable predictions.
+- Shows model evidence, including MAE, RMSE, R2, residuals, feature importance, error by price range, and prediction examples.
+- Predicts a fair-value estimate for a sample listing and explains the result, fair-value range, assumptions, and limitations.
 
 ## Project Structure
 
 ```text
 app/
-  homescope_app.py          Streamlit proof of concept from Iteration 1
+  homescope_app.py          Legacy Streamlit app for quick local exploration
 backend/
   main.py                   FastAPI app and API routes
   schemas.py                Request and response models
@@ -29,59 +29,23 @@ data/
 frontend/
   src/                      React/Vite frontend
 models/
-  homescope_model.joblib    Saved best model artifact
-  homescope_metadata.json   Training metadata and model notes
+  homescope_model.joblib    Saved selected model artifact
+  homescope_metadata.json   Training metadata, metrics, and model notes
 scripts/
-  train_model.py            Trains and saves the best model
+  train_model.py            Trains, compares, and saves the selected model
   smoke_check.py            Lightweight backend endpoint check
 src/
-  data_utils.py             Data loading and cleaning utilities
+  data_utils.py             Data loading, cleaning, filtering, and feature utilities
   model_utils.py            Model training and prediction utilities
 tests/
+  test_backend_api.py
+  test_data_utils.py
   test_smoke_check.py
 ```
 
-## Iterations
-
-### Iteration 1: Streamlit Proof of Concept
-
-The original app lives in `app/homescope_app.py`. It uses the Python utilities in `src/` to explore the data and model workflow quickly. This version is still kept in the repo as the proof-of-concept baseline.
-
-Run it with:
-
-```bash
-streamlit run app/homescope_app.py
-```
-
-### Iteration 2: FastAPI Backend and React Integration
-
-The second iteration added a real backend and connected the React frontend to live data instead of static JavaScript fixtures.
-
-Backend highlights:
-
-- `GET /api/health`
-- `GET /api/summary`
-- `GET /api/filters`
-- `GET /api/market`
-- `GET /api/models`
-- `POST /api/predict`
-
-The backend reuses `src/data_utils.py` and `src/model_utils.py`, loads the housing and ASPUS data, caches cleaned data/model state in memory, and falls back to in-memory training if a saved artifact is missing.
-
-### Iteration 2: Product UI and UX Revamp
-
-The third iteration focused on making the React app feel more like a polished product:
-
-- New app shell and navigation.
-- Landing-style Overview page with hero content and a product preview.
-- Redesigned Market, Model, and Predict workflows.
-- Cleaner metric cards, panels, forms, and responsive layouts.
-- Interactive chart hover states for bars, line charts, scatter plots, and residual plots.
-- Better error and loading states when the backend is offline.
-
 ## Setup
 
-Create and activate your Python environment, then install the Python dependencies:
+Create and activate a Python environment, then install the backend and modeling dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -94,22 +58,22 @@ cd frontend
 npm install
 ```
 
-If you are using WSL, install and run frontend dependencies from the WSL terminal so native Linux packages are used.
+If you are working in WSL, install and run frontend dependencies from the same environment you plan to use for `npm run dev` and `npm run build`. Mixing Windows and WSL Node packages can cause native dependency errors.
 
-## Train the Saved Model
+## Train the Model
 
-Run:
+From the project root:
 
 ```bash
 python scripts/train_model.py
 ```
 
-This creates:
+This creates or refreshes:
 
 - `models/homescope_model.joblib`
 - `models/homescope_metadata.json`
 
-The metadata file stores the selected model name, metrics, training time, feature columns, assumptions, row count, and limitation notes.
+The metadata file stores the selected model, comparison metrics, training time, feature columns, feature importance when available, residual samples, row count, and limitation notes.
 
 ## Run the Backend
 
@@ -119,7 +83,7 @@ From the project root:
 uvicorn backend.main:app --reload --port 8000
 ```
 
-The API will be available at:
+The API is available at:
 
 ```text
 http://localhost:8000/api
@@ -134,33 +98,51 @@ cd frontend
 npm run dev
 ```
 
-Vite will start the React app, usually at:
+Vite usually serves the app at:
 
 ```text
 http://localhost:5173
 ```
 
-The frontend uses `VITE_API_BASE_URL` when provided. If it is not set, it defaults to the local FastAPI backend.
+The frontend uses `VITE_API_BASE_URL` when it is set. Otherwise, it defaults to:
 
-## Checks Before Committing
+```text
+http://127.0.0.1:8000/api
+```
 
-Use these checks after changing backend or frontend code:
+## API Overview
+
+- `GET /api/health` checks that the backend is running.
+- `GET /api/summary` returns high-level dataset values for the Overview page.
+- `GET /api/filters` returns state and city filter options.
+- `GET /api/market` returns market summaries and chart data for the selected filters.
+- `GET /api/models` returns model comparison, selected model details, residuals, feature importance, and error context.
+- `POST /api/predict` returns a fair-value estimate, comparison signal, model error context, assumptions, and limitation notes.
+
+## Quality Checks
+
+Run these checks before handing off changes:
 
 ```bash
 python -m compileall -q src backend scripts tests
-python scripts/train_model.py
 python -m pytest tests -q
 ```
 
-For the frontend:
+Refresh the saved model when model features or training behavior change:
+
+```bash
+python scripts/train_model.py
+```
+
+Build the frontend from the frontend folder:
 
 ```bash
 cd frontend
 npm run build
 ```
 
-Then run the app and click through Overview, Market, Model, and Predict with the backend running.
+For a full manual check, run the backend and frontend together, then click through Overview, Market, Model, and Predict.
 
-## Notes
+## Prediction Note
 
-HomeScope is a research and portfolio project. The model estimate is not a real appraisal. Local conditions, outliers, data quality, and missing location detail can all affect prediction accuracy.
+HomeScope provides model-backed research estimates, not appraisals. Local conditions, outliers, data quality, and missing property details can all affect prediction accuracy.

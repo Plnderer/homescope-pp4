@@ -31,7 +31,7 @@ export default function MarketPage({ setActivePage }) {
     min_beds: 1,
     min_baths: 1,
     min_sqft: 500,
-    max_sqft: 6000,
+    max_sqft: 0,
   });
   const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
   const [market, setMarket] = useState(null);
@@ -98,11 +98,11 @@ export default function MarketPage({ setActivePage }) {
             </select>
           </label>
           <label>
-            <span>Minimum beds (1+)</span>
+            <span>Minimum beds</span>
             <input type="number" min="1" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
           </label>
           <label>
-            <span>Minimum baths (1+)</span>
+            <span>Minimum baths</span>
             <input type="number" min="1" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
           </label>
           <label>

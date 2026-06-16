@@ -92,9 +92,12 @@ export default function PredictPage({ setActivePage }) {
   }, [form.state]);
 
   function updateField(key, value) {
+    const positiveFields = ["living_space", "listing_price"];
+    const nextValue = positiveFields.includes(key) ? Math.max(1, Number(value) || 1) : value;
+
     setForm((current) => ({
       ...current,
-      [key]: value,
+      [key]: nextValue,
       ...(key === "state" ? { city: "All" } : {}),
     }));
   }
@@ -178,11 +181,11 @@ export default function PredictPage({ setActivePage }) {
               </label>
               <label>
                 <span>Living space</span>
-                <input type="number" min="0" value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
+                <input type="number" min="1" value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
               </label>
               <label>
                 <span>Listing price</span>
-                <input type="number" min="0" value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
+                <input type="number" min="1" value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
               </label>
             </div>
             <button type="submit" className="primary-button prediction-submit" disabled={loading}>

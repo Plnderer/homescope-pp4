@@ -17,9 +17,21 @@ def check_file(name: str, path: str | Path) -> dict:
     return {"name": name, "ok": False, "detail": f"Missing: {resolved}"}
 
 
-def check_url(name: str, url: str, timeout: float = 5.0) -> dict:
+def check_url(
+    name: str,
+    url: str,
+    timeout: float = 5.0,
+    method: str = "GET",
+    payload: dict | None = None,
+) -> dict:
+    data = None
+    headers = {}
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    url_request = request.Request(url, data=data, headers=headers, method=method)
     try:
-        with request.urlopen(url, timeout=timeout) as response:
+        with request.urlopen(url_request, timeout=timeout) as response:
             body = response.read()
     except error.URLError as exc:
         return {"name": name, "ok": False, "detail": f"Request failed: {exc}"}
@@ -48,7 +60,22 @@ def run_checks(root: Path = ROOT, api_base: str = "http://127.0.0.1:8000/api") -
         check_file("Frontend package file", root / "frontend" / "package.json"),
         check_url("Backend health endpoint", f"{base}/health"),
         check_url("Backend summary endpoint", f"{base}/summary"),
+        check_url("Backend filters endpoint", f"{base}/filters"),
+        check_url("Backend market endpoint", f"{base}/market?min_beds=1&min_baths=1&min_sqft=500&max_sqft=0"),
         check_url("Backend models endpoint", f"{base}/models"),
+        check_url(
+            "Backend predict endpoint",
+            f"{base}/predict",
+            method="POST",
+            payload={
+                "state": "New York",
+                "city": "New York",
+                "beds": 3,
+                "baths": 2,
+                "living_space": 1800,
+                "listing_price": 725000,
+            },
+        ),
     ]
 
 

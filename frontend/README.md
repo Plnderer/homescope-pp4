@@ -1,21 +1,19 @@
 # HomeScope Frontend
 
-This is the React/Vite interface for HomeScope. It calls the FastAPI backend for live housing summaries, market filters, model evidence, and fair-value predictions.
+This folder contains the React/Vite interface for HomeScope. The frontend calls the FastAPI backend for live housing summaries, market filters, model evidence, and fair-value predictions.
 
-## What Changed in Iteration 2
+## Product Flow
 
-The frontend was redesigned to feel more like a finished product instead of a static dashboard:
+HomeScope is organized around four main pages:
 
-- Landing-style Overview page with hero content, product preview, and clear calls to action.
-- Sidebar app shell for the analytical pages.
-- Redesigned Market, Model, and Predict pages.
-- Cleaner metric cards, panels, forms, and responsive layouts.
-- Interactive chart hover states for bars, line charts, scatter plots, and residual plots.
-- Friendly loading and error states when the backend is offline.
+- **Overview** introduces the product and shows high-level housing dataset metrics.
+- **Market** lets users filter the cleaned housing records and compare market averages, distribution, city averages, living-space relationships, and national trend context.
+- **Model** presents the selected model as evidence, including model comparisons, residuals, feature importance, error by price range, and example predictions.
+- **Predict** compares a sample listing against the selected model and returns a fair-value estimate, range, signal, assumptions, and limitation notes.
 
 ## Run Locally
 
-Install dependencies:
+Install dependencies from this folder:
 
 ```bash
 npm install
@@ -33,30 +31,24 @@ The app usually runs at:
 http://localhost:5173
 ```
 
-## API Configuration
-
-The frontend uses:
-
-```text
-VITE_API_BASE_URL
-```
-
-If the variable is not set, the app defaults to:
-
-```text
-http://127.0.0.1:8000/api
-```
-
-For local development, start the backend first:
+For local development, start the backend from the project root first:
 
 ```bash
 uvicorn backend.main:app --reload --port 8000
 ```
 
-Then start the frontend from this folder:
+## API Configuration
 
-```bash
-npm run dev
+The frontend uses this environment variable when it is available:
+
+```text
+VITE_API_BASE_URL
+```
+
+If it is not set, the app defaults to:
+
+```text
+http://127.0.0.1:8000/api
 ```
 
 ## Page to Endpoint Mapping
@@ -66,22 +58,23 @@ npm run dev
 - Model calls `GET /api/models`
 - Predict calls `GET /api/filters` and `POST /api/predict`
 
-## WSL Note
-
-If you are running the project in WSL, run `npm install`, `npm run build`, and `npm run dev` from the WSL terminal. Mixing Windows-installed Node packages with WSL can cause platform-specific dependency errors.
-
 ## Build Check
 
-Before committing frontend changes:
+Before handing off frontend changes:
 
 ```bash
 npm run build
 ```
 
-Then open the app and check:
+Then run the app with the backend active and check:
 
-- Overview hero and metric strip render cleanly.
-- Market filters update charts.
-- Model page shows metrics and residuals.
-- Predict form returns a result when the backend is running.
-- Charts respond to hover or focus.
+- Overview metrics load from the backend.
+- Market filters update the metric cards and charts.
+- Model shows comparison metrics, selected model details, residuals, and feature importance.
+- Predict returns a fair-value result with a range, signal, assumptions, and model context.
+- Empty, loading, and backend-offline states are readable.
+- Desktop and mobile layouts do not overlap or waste large blocks of space.
+
+## WSL Note
+
+If you are running the project in WSL, use the same environment for `npm install`, `npm run dev`, and `npm run build`. Mixing Windows-installed Node packages with WSL can cause platform-specific dependency errors.

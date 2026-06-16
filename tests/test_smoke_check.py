@@ -61,7 +61,7 @@ def test_run_checks_includes_backend_and_frontend_readiness(monkeypatch, tmp_pat
     monkeypatch.setattr(
         smoke_check,
         "check_url",
-        lambda name, url: {"name": name, "ok": True, "detail": url},
+        lambda name, url, **kwargs: {"name": name, "ok": True, "detail": url},
     )
 
     checks = smoke_check.run_checks(tmp_path, "http://127.0.0.1:8000/api")
@@ -70,4 +70,7 @@ def test_run_checks_includes_backend_and_frontend_readiness(monkeypatch, tmp_pat
     assert "Housing CSV" in names
     assert "Saved model artifact" in names
     assert "Backend health endpoint" in names
+    assert "Backend filters endpoint" in names
+    assert "Backend market endpoint" in names
+    assert "Backend predict endpoint" in names
     assert all(check["ok"] for check in checks)
