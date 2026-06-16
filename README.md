@@ -51,6 +51,12 @@ Create and activate a Python environment, then install the backend and modeling 
 pip install -r requirements.txt
 ```
 
+Install the extra local development and legacy Streamlit app dependencies when needed:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 Install frontend dependencies from the frontend folder:
 
 ```bash

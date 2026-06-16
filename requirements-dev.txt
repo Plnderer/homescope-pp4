@@ -1,0 +1,6 @@
+-r requirements.txt
+httpx
+matplotlib
+plotly
+pytest
+streamlit

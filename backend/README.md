@@ -132,6 +132,12 @@ The response includes:
 
 ## Development Checks
 
+Install the development dependencies before running the test suite:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 From the project root:
 
 ```bash
