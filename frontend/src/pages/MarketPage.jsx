@@ -31,7 +31,7 @@ export default function MarketPage({ setActivePage }) {
     min_beds: 1,
     min_baths: 1,
     min_sqft: 500,
-    max_sqft: 0,
+    max_sqft: "",
   });
   const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
   const [market, setMarket] = useState(null);
@@ -51,8 +51,10 @@ export default function MarketPage({ setActivePage }) {
       min_beds: Math.max(0, Number(filters.min_beds) || 0),
       min_baths: Math.max(0, Number(filters.min_baths) || 0),
       min_sqft: Math.max(0, Number(filters.min_sqft) || 0),
-      max_sqft: Math.max(0, Number(filters.max_sqft) || 0),
     };
+    if (filters.max_sqft && Number(filters.max_sqft) > 0) {
+      validFilters.max_sqft = Number(filters.max_sqft);
+    }
     getMarket(validFilters)
       .then((data) => {
         setMarket(data);
