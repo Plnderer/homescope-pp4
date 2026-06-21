@@ -6,10 +6,10 @@ import PredictPage from "./pages/PredictPage";
 import "./styles.css";
 
 const pages = [
-  { id: "overview", label: "Overview", kicker: "Portfolio", title: "HomeScope" },
-  { id: "market", label: "Market", kicker: "Explore", title: "Market analysis" },
-  { id: "model", label: "Model", kicker: "Evidence", title: "Model review" },
-  { id: "predict", label: "Predict", kicker: "Estimate", title: "Fair value" },
+  { id: "overview", label: "Overview" },
+  { id: "market", label: "Market" },
+  { id: "predict", label: "Predict" },
+  { id: "model", label: "Model" },
 ];
 
 const pageComponents = {
@@ -22,20 +22,19 @@ const pageComponents = {
 export default function App() {
   const [activePage, setActivePage] = useState("overview");
   const ActivePage = pageComponents[activePage];
-  const currentPage = pages.find((page) => page.id === activePage);
 
   return (
-    <div className={`app-shell ${activePage === "overview" ? "landing-mode" : ""}`}>
-      <aside className="sidebar" aria-label="HomeScope navigation">
-        <div className="brand-block">
-          <div className="brand-mark">HS</div>
-          <div>
-            <p>HomeScope</p>
-            <span>Housing intelligence</span>
-          </div>
-        </div>
+    <div className="app-shell">
+      <header className="site-header">
+        <button type="button" className="brand-block" onClick={() => setActivePage("overview")}>
+          <img src="/logo.jpg" alt="HomeScope logo" className="brand-image" />
+          <span className="brand-copy">
+            <strong>HomeScope</strong>
+            <small>Market valuation reports</small>
+          </span>
+        </button>
 
-        <nav className="side-nav">
+        <nav className="top-nav" aria-label="Primary navigation">
           {pages.map((page) => (
             <button
               key={page.id}
@@ -43,43 +42,19 @@ export default function App() {
               className={page.id === activePage ? "active" : ""}
               onClick={() => setActivePage(page.id)}
             >
-              <span>{page.kicker}</span>
               {page.label}
             </button>
           ))}
         </nav>
-      </aside>
 
-      <div className="workspace">
-        <header className="topbar">
-          {activePage === "overview" ? (
-            <div className="landing-nav-brand">
-              <div className="brand-mark">HS</div>
-              <strong>HomeScope</strong>
-            </div>
-          ) : null}
-          <div>
-            <span>{currentPage.kicker}</span>
-            <h1>{currentPage.title}</h1>
-          </div>
-          <nav className="mobile-tabs" aria-label="Page tabs">
-            {pages.map((page) => (
-              <button
-                key={page.id}
-                type="button"
-                className={page.id === activePage ? "active" : ""}
-                onClick={() => setActivePage(page.id)}
-              >
-                {page.label}
-              </button>
-            ))}
-          </nav>
-        </header>
+        <button type="button" className="primary-button header-cta" onClick={() => setActivePage("predict")}>
+          Generate Valuation Report
+        </button>
+      </header>
 
-        <main className="workspace-main">
-          <ActivePage setActivePage={setActivePage} />
-        </main>
-      </div>
+      <main className="workspace-main">
+        <ActivePage setActivePage={setActivePage} />
+      </main>
     </div>
   );
 }

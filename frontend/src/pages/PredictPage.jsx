@@ -92,27 +92,34 @@ export default function PredictPage({ setActivePage }) {
   }, [form.state]);
 
   function updateField(key, value) {
-    const positiveFields = ["living_space", "listing_price"];
-    const nextValue = positiveFields.includes(key) ? Math.max(1, Number(value) || 1) : value;
-
     setForm((current) => ({
       ...current,
-      [key]: nextValue,
+      [key]: value,
       ...(key === "state" ? { city: "All" } : {}),
     }));
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (form.living_space === "" || Number(form.living_space) < 1 || form.listing_price === "" || Number(form.listing_price) < 1) {
+      setError("Please enter a value of 1 or greater for Living space and Listing price.");
+      return;
+    }
+    if (form.beds === "" || form.baths === "" || Number(form.beds) < 0 || Number(form.baths) < 0) {
+      setError("Please ensure Beds and Baths are set to 0 or higher.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
       const payload = {
         ...form,
-        beds: Number(form.beds),
-        baths: Number(form.baths),
-        living_space: Number(form.living_space),
-        listing_price: Number(form.listing_price),
+        beds: Math.max(0, Number(form.beds) || 0),
+        baths: Math.max(0, Number(form.baths) || 0),
+        living_space: Math.max(1, Number(form.living_space) || 1),
+        listing_price: Math.max(1, Number(form.listing_price) || 1),
       };
       setResult(await predictListing(payload));
     } catch {
@@ -127,6 +134,13 @@ export default function PredictPage({ setActivePage }) {
   const difference = result ? pick(result, ["difference"], listing - predicted) : 0;
   const percent = pick(result, ["percent_difference", "percentage_difference"], 0);
   const marketLabel = pick(result, ["signal", "market_label", "label"], "Run a prediction");
+  let signalTone = "neutral";
+  const lbl = String(marketLabel).toLowerCase();
+  if (lbl.includes("below") || lbl.includes("under")) {
+    signalTone = "positive";
+  } else if (lbl.includes("above") || lbl.includes("over")) {
+    signalTone = "negative";
+  }
   const modelName = pick(result, ["selected_model_name", "model_name"], "Model pending");
   const assumptions = pick(result, ["assumptions_used", "assumptions"], []);
   const fairValueRange = pick(result, ["fair_value_range"], null);
@@ -143,9 +157,9 @@ export default function PredictPage({ setActivePage }) {
   return (
     <div className="screen-stack prediction-page">
       <PageHeader
-        eyebrow="Prediction workspace"
-        title="Compare a sample listing against the selected model."
-        copy="The form fills hidden model inputs from the selected market and returns a fair-value estimate, comparison signal, assumptions, and limitation notes."
+        eyebrow="Valuation Report"
+        title="Generate a HomeScope Valuation Report."
+        copy="Enter the visible listing details. HomeScope adds available market context and returns a research estimate with range, assumptions, and limitations."
         aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review model first</button>}
       />
 
@@ -153,10 +167,11 @@ export default function PredictPage({ setActivePage }) {
 
       <section className="prediction-layout">
         <div className="prediction-main-stack">
-          <form className="panel prediction-card" onSubmit={handleSubmit}>
+          <form className="panel prediction-card" onSubmit={handleSubmit} noValidate>
             <div className="panel-heading">
               <span>Listing inputs</span>
-              <h2>Sample property</h2>
+              <h2>Property details for the report</h2>
+              <p>Use the core facts from the listing. The report will disclose any market assumptions used behind the scenes.</p>
             </div>
             <div className="form-grid">
               <label>
@@ -173,36 +188,37 @@ export default function PredictPage({ setActivePage }) {
               </label>
               <label>
                 <span>Beds</span>
-                <input type="number" min="0" value={form.beds} onChange={(event) => updateField("beds", event.target.value)} />
+                <input type="number" min="0" required value={form.beds} onChange={(event) => updateField("beds", event.target.value)} />
               </label>
               <label>
                 <span>Baths</span>
-                <input type="number" min="0" value={form.baths} onChange={(event) => updateField("baths", event.target.value)} />
+                <input type="number" min="0" required value={form.baths} onChange={(event) => updateField("baths", event.target.value)} />
               </label>
               <label>
                 <span>Living space</span>
-                <input type="number" min="1" value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
+                <input type="number" min="1" required value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
               </label>
               <label>
                 <span>Listing price</span>
-                <input type="number" min="1" value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
+                <input type="number" min="1" required value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
               </label>
             </div>
             <button type="submit" className="primary-button prediction-submit" disabled={loading}>
-              {loading ? "Estimating..." : "Predict fair value"}
+              {loading ? "Generating report..." : "Generate Valuation Report"}
             </button>
           </form>
 
           {result ? (
             <>
-              <ChartCard title="Estimate comparison" description="A direct comparison between model value and entered listing price.">
+              <ChartCard title="Valuation comparison" description="A simple comparison between the entered listing price and the model's fair-value estimate.">
                 <BarChart data={comparisonBars} tone="mixed" layout="horizontal" />
               </ChartCard>
 
               <section className="panel limitations-panel">
                 <div className="panel-heading">
-                  <span>Result limits</span>
-                  <h2>Use the estimate as model evidence.</h2>
+                  <span>Report limits</span>
+                  <h2>Research estimate, not an appraisal.</h2>
+                  <p>Use this report as decision support. It does not replace a licensed appraisal, inspection, underwriting review, or local expert judgment.</p>
                 </div>
                 <ul>
                   {(limitations.length ? limitations : [
@@ -216,8 +232,8 @@ export default function PredictPage({ setActivePage }) {
             <section className="panel prediction-hint-panel">
               <div className="panel-heading">
                 <span>Before prediction</span>
-                <h2>Enter the visible listing details, then HomeScope fills the market context.</h2>
-                <p>The result will show fair-value range, model signal, MAE context, assumptions, and comparison bars after the estimate runs.</p>
+                <h2>Your report will appear on the right.</h2>
+                <p>The pending state is intentional: fair value, range, signal, assumptions, and model context populate after generation.</p>
               </div>
             </section>
           )}
@@ -225,23 +241,48 @@ export default function PredictPage({ setActivePage }) {
 
         <aside className="result-stack">
           <article className={`panel valuation-report ${result ? "ready" : "pending"}`}>
-            <span>HomeScope result</span>
+            <span>HomeScope Valuation Report</span>
             <h2>{result ? currency.format(predicted) : "Pending estimate"}</h2>
             <p className="range-line">
               {result && fairValueRange
                 ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)} fair-value range`
                 : "Run a prediction to calculate a fair-value range."}
             </p>
+            <p className="report-warning">Research estimate, not an appraisal.</p>
             <div className="signal-band">
-              <span>Signal</span>
-              <strong>{marketLabel}</strong>
+              <span>Price signal</span>
+              <strong className={`signal-badge ${signalTone}`}>{marketLabel}</strong>
             </div>
             <p>{resultExplanation}</p>
           </article>
           <div className="result-metric-pair">
-            <MetricCard label="Listing price" value={currency.format(listing)} tone="blue" />
-            <MetricCard label="Difference" value={result ? currency.format(difference) : "Pending"} detail={result ? `${Number(percent || 0).toFixed(1)}% from estimate` : "Submit the form to compare"} tone="gold" />
+            <MetricCard label="Listing price" value={currency.format(listing)} detail="Entered asking price" tone="blue" />
+            <MetricCard label="Difference" value={result ? currency.format(difference) : "Pending"} detail={result ? `${Number(percent || 0).toFixed(1)}% from fair value` : "Submit the form to compare"} tone="gold" />
           </div>
+          <article className="panel report-summary-panel">
+            <div className="panel-heading">
+              <span>Report summary</span>
+              <h2>What this result includes</h2>
+            </div>
+            <div className="report-summary-grid">
+              <div>
+                <span>Fair value</span>
+                <strong>{result ? currency.format(predicted) : "Pending"}</strong>
+              </div>
+              <div>
+                <span>Range</span>
+                <strong>{result && fairValueRange ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)}` : "Pending"}</strong>
+              </div>
+              <div>
+                <span>Signal</span>
+                <strong>{marketLabel}</strong>
+              </div>
+              <div>
+                <span>Model error</span>
+                <strong>{result && modelMae ? currency.format(modelMae) : "Shown after generation"}</strong>
+              </div>
+            </div>
+          </article>
           <article className="panel result-label">
             <span>Model used</span>
             <strong>{modelName}</strong>
@@ -249,12 +290,12 @@ export default function PredictPage({ setActivePage }) {
           </article>
 
           {result ? (
-            <article className="panel assumptions-panel">
-              <div className="panel-heading">
+            <details className="panel assumptions-panel">
+              <summary>
                 <span>Assumptions</span>
-                <h2>Market context used by the model</h2>
-                <p>These fields are filled from the selected city medians when the listing form does not collect them directly.</p>
-              </div>
+                Market context used by the model
+              </summary>
+              <p>These fields are filled from the selected city medians when the form does not collect them directly.</p>
               <dl className="assumption-list">
                 {assumptionRows.map((item) => (
                   <div key={item.key}>
@@ -263,7 +304,7 @@ export default function PredictPage({ setActivePage }) {
                   </div>
                 ))}
               </dl>
-            </article>
+            </details>
           ) : null}
         </aside>
       </section>

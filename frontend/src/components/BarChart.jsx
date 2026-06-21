@@ -22,7 +22,7 @@ export default function BarChart({ data = [], tone = "mixed", layout = "vertical
   }
 
   const max = Math.max(...rows.map((item) => Number(item.value) || 0), 1);
-  const colors = ["teal", "blue", "gold", "green", "coral"];
+  const colors = ["teal", "gold", "teal", "gold"];
   const useList = layout === "horizontal" || rows.some((item) => String(item.label || "").length > 18);
 
   if (useList) {

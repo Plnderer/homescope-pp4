@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import MetricCard from "../components/MetricCard";
 import { getSummary } from "../services/api";
+import { Reveal } from "../hooks/useScrollReveal";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -24,103 +24,100 @@ export default function OverviewPage({ setActivePage }) {
   useEffect(() => {
     getSummary()
       .then(setSummary)
-      .catch(() => setError("Live API is offline. Start the FastAPI backend on port 8000 to populate the landing metrics."));
+      .catch(() => setError("Live summary is unavailable. The app still works once the FastAPI backend is running."));
   }, []);
 
   const totalRecords = pick(summary, ["record_count", "total_records", "count"]);
-  const avgPrice = pick(summary, ["average_price", "avg_price"]);
   const medianPrice = pick(summary, ["median_price"]);
   const states = countValue(pick(summary, ["states_count", "state_count", "states"]));
   const cities = countValue(pick(summary, ["cities_count", "city_count", "cities"]));
 
   return (
     <div className="landing-page">
-      <section className="landing-hero">
-        <div className="hero-content">
-          <span className="hero-kicker">AI-powered housing market dashboard</span>
-          <h2>Explore market context before trusting a home price estimate.</h2>
+      <section className="landing-hero editorial-hero">
+        <Reveal className="hero-content">
+          <span className="eyebrow">Home value intelligence</span>
+          <h1>Understand the market before you trust the price.</h1>
           <p>
-            HomeScope turns cleaned U.S. housing records, market filters, model evidence,
-            and fair-value predictions into a portfolio-ready analytics experience.
+            HomeScope compares housing records, market context, and 
+            model evidence so you can see whether a listing looks low, fair, or overpriced.
           </p>
           <div className="hero-actions">
-            <button type="button" className="primary-button" onClick={() => setActivePage("market")}>Explore market</button>
-            <button type="button" className="secondary-button" onClick={() => setActivePage("predict")}>Predict fair value</button>
+            <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Explore Market</button>
+            <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
           </div>
-        </div>
+        </Reveal>
 
-        <div className="hero-preview" aria-label="HomeScope product preview">
-          <div className="preview-toolbar">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="preview-grid">
-            <div className="preview-card large">
-              <span>Selected market</span>
-              <strong>{currency.format(avgPrice || 591000)}</strong>
-              <div className="mini-trend">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
+        <Reveal as="aside" className="hero-report-card" aria-label="Valuation report preview" delay="1">
+          <span>Sample report</span>
+          <strong>{medianPrice ? currency.format(medianPrice) : "$545,000"}</strong>
+          <p>Estimated value range backed by market evidence, model context, and assumptions.</p>
+          <dl>
+            <div>
+              <dt>Market records</dt>
+              <dd>{totalRecords ? integer.format(totalRecords) : "Ready"}</dd>
             </div>
-            <div className="preview-card">
-              <span>Model</span>
-              <strong>Random Forest</strong>
+            <div>
+              <dt>Coverage</dt>
+              <dd>{states ? `${integer.format(states)} states` : `${integer.format(cities)} cities`}</dd>
             </div>
-            <div className="preview-card">
-              <span>Signal</span>
-              <strong>Possible value</strong>
-            </div>
-            <div className="preview-chart">
-              {[72, 46, 58, 35, 84, 63].map((height, index) => (
-                <i key={height + index} style={{ height: `${height}%` }} />
-              ))}
-            </div>
-          </div>
+          </dl>
+        </Reveal>
+      </section>
+
+      {error ? <div className="notice-panel">{error}</div> : null}
+
+      <Reveal as="section" className="story-section problem-statement">
+        <span className="eyebrow">The problem</span>
+        <h2>A home price without context is misleading.</h2>
+        <p>
+          Asking price is only the starting point. 
+          Similar homes, local price spread, living space, city patterns, 
+          and model error can all change whether a price looks reasonable. 
+          HomeScope keeps those signals visible before you trust the estimate.
+        </p>
+      </Reveal>
+
+      <section className="story-section">
+        <Reveal className="section-heading">
+          <span className="eyebrow">Two paths</span>
+          <h2>How can HomeScope help you?</h2>
+        </Reveal>
+        <div className="path-grid">
+          <Reveal as="article" className="path-card">
+            <span>01</span>
+            <h3>Explore Market</h3>
+            <p>Filter by location and property basics, then read the market snapshot and evidence charts.</p>
+            <button type="button" className="text-button" onClick={() => setActivePage("market")}>Open Market</button>
+          </Reveal>
+          <Reveal as="article" className="path-card featured" delay="1">
+            <span>02</span>
+            <h3>Generate Valuation Report</h3>
+            <p>Enter a listing and compare asking price with predicted fair value, range, assumptions, and limits.</p>
+            <button type="button" className="text-button" onClick={() => setActivePage("predict")}>Create Report</button>
+          </Reveal>
         </div>
       </section>
 
-      {error ? <div className="error-panel">{error}</div> : null}
-
-      <section className="metric-grid landing-metrics">
-        <MetricCard label="Clean records" value={integer.format(totalRecords)} detail="Backend-powered dataset" />
-        <MetricCard label="Average price" value={currency.format(avgPrice)} detail="Live summary value" tone="blue" />
-        <MetricCard label="Median price" value={currency.format(medianPrice)} detail="Outlier-aware context" tone="gold" />
-        <MetricCard label="Coverage" value={`${integer.format(states)} states`} detail={`${integer.format(cities)} cities`} tone="green" />
-      </section>
-
-      <section className="landing-section">
-        <div className="section-intro">
-          <span>How it works</span>
-          <h3>One guided flow from market read to model-backed estimate.</h3>
-        </div>
-        <div className="landing-steps">
-          {[
-            ["01", "Filter the market", "Choose state, city, beds, baths, and living space to narrow comparable records."],
-            ["02", "Read the evidence", "Review distributions, city averages, national trend context, and model error."],
-            ["03", "Run the estimate", "Submit a sample listing and compare listing price against predicted fair value."],
-          ].map(([step, title, body]) => (
-            <article className="landing-step" key={step}>
-              <span>{step}</span>
-              <h4>{title}</h4>
-              <p>{body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-band">
+      <Reveal as="section" className="transparency-strip">
         <div>
-          <span>Portfolio MVP</span>
-          <h3>Built to show the full product path, not just a notebook result.</h3>
-          <p>The React interface calls the FastAPI backend, the backend reuses the Python cleaning and model utilities, and the saved artifact workflow keeps predictions repeatable.</p>
+          <span className="eyebrow">Model transparency</span>
+          <h2>Evidence is available when you need it.</h2>
         </div>
-        <button type="button" className="primary-button" onClick={() => setActivePage("model")}>Review model evidence</button>
-      </section>
+        <p>
+          The Model page explains the selected model, error metrics, residuals, and feature importance.
+        </p>
+        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>
+      </Reveal>
+
+      <Reveal as="section" className="final-cta">
+        <span className="eyebrow">Next step</span>
+        <h2>Review the market, then generate the valuation report.</h2>
+        <div className="hero-actions">
+          <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Start with Market</button>
+          <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Predict Fair Value</button>
+        </div>
+      </Reveal>
     </div>
   );
 }

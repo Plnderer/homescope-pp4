@@ -83,10 +83,10 @@ export default function ModelPage({ setActivePage }) {
   return (
     <div className="screen-stack">
       <PageHeader
-        eyebrow="Model dashboard"
-        title="The prediction model is the product surface."
-        copy="Compare candidate models, inspect the selected model, and keep the model's error profile visible before using a fair-value estimate."
-        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Use selected model</button>}
+        eyebrow="Model evidence"
+        title="The technical support behind the report."
+        copy="This page is for checking the selected model, error context, residuals, and important inputs behind HomeScope's valuation report."
+        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Report</button>}
       />
 
       {error ? <div className="error-panel">{error}</div> : null}
@@ -96,45 +96,17 @@ export default function ModelPage({ setActivePage }) {
         <MetricCard label="Selected model" value={bestModel} tone="gold" />
         <MetricCard label="Best MAE" value={currency.format(bestMae ?? 0)} detail="Average dollar error on test listings" />
         <MetricCard label="Rows trained" value={(modelDetail?.rows_trained ?? artifact?.dataset_row_count_after_cleaning ?? 0).toLocaleString()} tone="blue" />
-        <MetricCard label="Features used" value={modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} tone="green" />
+        <MetricCard label="Features used" value={modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} />
       </section>
 
-      <section className="model-comparison-grid">
-        {metrics.length ? metrics.map((item) => {
-          const isSelected = item.name === bestModel;
-          return (
-            <article className={`model-comparison-card ${isSelected ? "selected" : ""}`} key={item.name}>
-              <div>
-                <span>{isSelected ? "Selected by MAE" : "Candidate model"}</span>
-                <h3>{item.name}</h3>
-              </div>
-              <dl>
-                <div>
-                  <dt>MAE</dt>
-                  <dd>{currency.format(item.mae ?? 0)}</dd>
-                </div>
-                <div>
-                  <dt>RMSE</dt>
-                  <dd>{currency.format(item.rmse ?? 0)}</dd>
-                </div>
-                <div>
-                  <dt>R2</dt>
-                  <dd>{Number(item.r2 ?? 0).toFixed(3)}</dd>
-                </div>
-              </dl>
-            </article>
-          );
-        }) : <div className="empty-visual">No model metrics were returned by the backend.</div>}
-      </section>
-
-      <section className="model-evidence-layout">
-        <article className="panel selected-model-panel">
-          <div className="panel-heading">
-            <span>Selected model</span>
-            <h2>{selectedModel?.name || bestModel}</h2>
-            <p>{selectedModel?.reason || "The backend did not return a selected-model explanation."}</p>
-          </div>
-          <div className="model-detail-grid">
+      <section className="panel selected-model-panel">
+        <div className="panel-heading">
+          <span>Selected model</span>
+          <h2>{selectedModel?.name || bestModel}</h2>
+          <p>{selectedModel?.reason || "The backend did not return a selected-model explanation."}</p>
+        </div>
+        <div className="selected-model-badge">Active prediction model</div>
+        <div className="model-detail-grid">
             <div>
               <span>Artifact</span>
               <strong>{modelDetail?.artifact_loaded || artifact?.artifact_loaded ? "Saved model loaded" : "In-memory fallback"}</strong>
@@ -151,13 +123,59 @@ export default function ModelPage({ setActivePage }) {
               <span>Feature count</span>
               <strong>{modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length}</strong>
             </div>
-          </div>
-        </article>
+        </div>
+      </section>
+
+      <details className="panel metric-guide-panel">
+        <summary>
+          <span>Plain-language guide</span>
+          How to read model error
+        </summary>
+        <div className="metric-guide-grid">
+          <p><strong>MAE</strong> is the average dollar gap between predicted and actual prices. Lower is better.</p>
+          <p><strong>RMSE</strong> penalizes large misses more heavily, making outlier errors easier to spot.</p>
+          <p><strong>R²</strong> shows how much price movement the model explains. Closer to 1 is stronger.</p>
+          <p><strong>Residual plot</strong> shows prediction misses around zero. Wider spread means more uncertainty.</p>
+          <p><strong>Feature importance</strong> shows which inputs most influenced the selected model.</p>
+        </div>
+      </details>
+
+      <section className="model-comparison-grid">
+        {metrics.length ? metrics.map((item) => {
+          const isSelected = item.name === bestModel;
+          return (
+            <article className={`model-comparison-card ${isSelected ? "selected" : ""}`} key={item.name}>
+              <div>
+                <span>{isSelected ? "Selected model" : "Candidate model"}</span>
+                <h3>{item.name}</h3>
+                {isSelected ? <p className="selected-model-note">Used by the valuation report.</p> : null}
+              </div>
+              <dl>
+                <div>
+                  <dt>MAE</dt>
+                  <dd>{currency.format(item.mae ?? 0)}</dd>
+                </div>
+                <div>
+                  <dt>RMSE</dt>
+                  <dd>{currency.format(item.rmse ?? 0)}</dd>
+                </div>
+                <div>
+                  <dt>R²</dt>
+                  <dd>{Number(item.r2 ?? 0).toFixed(3)}</dd>
+                </div>
+              </dl>
+            </article>
+          );
+        }) : <div className="empty-visual">No model metrics were returned by the backend.</div>}
+      </section>
+
+      <section className="model-evidence-layout">
 
         <article className="panel feature-importance-panel">
           <div className="panel-heading">
             <span>Feature importance</span>
             <h2>What drives the selected model</h2>
+            <p>Higher values indicate stronger influence on the model's prediction behavior.</p>
           </div>
           {featureImportance.length ? (
             <div className="importance-list">
@@ -178,7 +196,7 @@ export default function ModelPage({ setActivePage }) {
       <section className="panel model-table-card">
         <div className="panel-heading">
           <span>Full comparison</span>
-          <h2>MAE, RMSE, and R2</h2>
+          <h2>MAE, RMSE, and R²</h2>
         </div>
         {metrics.length ? (
           <div className="model-table">
@@ -186,7 +204,7 @@ export default function ModelPage({ setActivePage }) {
               <span>Model</span>
               <span>MAE</span>
               <span>RMSE</span>
-              <span>R2</span>
+              <span>R²</span>
             </div>
             {metrics.map((item) => (
               <div className="model-row" key={item.name}>
@@ -203,16 +221,16 @@ export default function ModelPage({ setActivePage }) {
       </section>
 
       <section className="chart-grid">
-        <ChartCard title="MAE by model" description="Lower MAE means the model made smaller average dollar errors on the test split.">
+        <ChartCard title="MAE by model" description="Lower MAE means smaller average dollar misses on the test split.">
           <BarChart data={maeBars} tone="mixed" layout="horizontal" />
         </ChartCard>
-        <ChartCard title="Error by price range" description="Average residual size grouped by actual sale/listing price bands.">
+        <ChartCard title="Error by price range" description="Shows where the model tends to be less precise across lower and higher price bands.">
           <BarChart data={errorBars} tone="coral" layout="horizontal" />
         </ChartCard>
       </section>
 
       <section className="chart-grid">
-        <ChartCard title="Residual plot" description="Residuals near zero are better; wide spread flags higher uncertainty.">
+        <ChartCard title="Residual plot" description="Residuals near zero are better. A wide spread means the valuation report should be read with more caution.">
           <ScatterChart data={residuals} residual />
         </ChartCard>
         <article className="panel prediction-examples-panel">
