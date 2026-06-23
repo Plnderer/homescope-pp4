@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getSummary } from "../services/api";
 import { Reveal } from "../hooks/useScrollReveal";
 
@@ -17,9 +17,46 @@ function countValue(value) {
   return Number(value) || 0;
 }
 
+const howItWorks = [
+  ["01", "Enter the listing details", "Start with the visible facts from the listing: location, beds, baths, living space, and asking price."],
+  ["02", "Compare similar records", "HomeScope checks the listing against similar housing records and market context."],
+  ["03", "Review the fair value range", "Read the estimate, range, price signal, and the note about what the result can and cannot prove."],
+  ["04", "Check evidence if needed", "Use Market for comparable context and Model Evidence only when you want more technical detail."],
+];
+
 export default function OverviewPage({ setActivePage }) {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
+  const [activeStep, setActiveStep] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const heroRef = useRef(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Calculate tilt angles
+    const xPct = (x / rect.width - 0.5) * 2;
+    const yPct = (y / rect.height - 0.5) * 2;
+
+    setTilt({ x: -yPct * 15, y: xPct * 15 });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 });
+  };
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [isPaused]);
 
   useEffect(() => {
     getSummary()
@@ -34,88 +71,243 @@ export default function OverviewPage({ setActivePage }) {
 
   return (
     <div className="landing-page">
-      <section className="landing-hero editorial-hero">
-        <Reveal className="hero-content">
-          <span className="eyebrow">Home value intelligence</span>
-          <h1>Understand the market before you trust the price.</h1>
-          <p>
-            HomeScope compares housing records, market context, and 
-            model evidence so you can see whether a listing looks low, fair, or overpriced.
+      <section
+        className="mindblowing-hero"
+        ref={heroRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+
+
+        <Reveal className="hero-content text-center">
+          <span className="eyebrow" style={{justifyContent: 'center'}}>Home Value Intelligence</span>
+          <h1 className="hero-massive-title">See what a home is worth.</h1>
+          <p className="hero-sub">
+            HomeScope compares a listing against housing records, market context, and model evidence to estimate
+            a fair value range.
           </p>
-          <div className="hero-actions">
-            <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Explore Market</button>
-            <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
+          <div className="hero-actions center-actions">
+            <button type="button" className="hero-pill-button" onClick={() => setActivePage("predict")}>
+              Generate Valuation Report
+            </button>
           </div>
         </Reveal>
 
-        <Reveal as="aside" className="hero-report-card" aria-label="Valuation report preview" delay="1">
-          <span>Sample report</span>
-          <strong>{medianPrice ? currency.format(medianPrice) : "$545,000"}</strong>
-          <p>Estimated value range backed by market evidence, model context, and assumptions.</p>
-          <dl>
-            <div>
-              <dt>Market records</dt>
-              <dd>{totalRecords ? integer.format(totalRecords) : "Ready"}</dd>
+        <div className="isometric-container">
+          <div className="spotlight-overlay"></div>
+          <div
+            className="isometric-mockup"
+            style={{
+              transform: `rotateX(${60 + tilt.x}deg) rotateZ(${-45 + tilt.y}deg) translateZ(0)`
+            }}
+          >
+            <div className="mockup-glass">
+              <div className="mockup-header">
+                <div className="mockup-address">123 Example Street</div>
+                <div className="mockup-price">{medianPrice ? currency.format(medianPrice) : "$545,000"}</div>
+              </div>
+              <div className="mockup-body">
+                <div className="mockup-row"><div className="mockup-label">Estimated Value</div><div className="mockup-value">$542,500</div></div>
+                <div className="mockup-row"><div className="mockup-label">Confidence</div><div className="mockup-value">High (92%)</div></div>
+                <div className="mockup-chart">
+                  <div className="mockup-bar" style={{ width: "40%" }}></div>
+                  <div className="mockup-bar" style={{ width: "70%" }}></div>
+                  <div className="mockup-bar" style={{ width: "55%" }}></div>
+                </div>
+              </div>
             </div>
-            <div>
-              <dt>Coverage</dt>
-              <dd>{states ? `${integer.format(states)} states` : `${integer.format(cities)} cities`}</dd>
-            </div>
-          </dl>
-        </Reveal>
+            {/* Layers for 3D depth */}
+            <div className="mockup-layer layer-1"></div>
+            <div className="mockup-layer layer-2"></div>
+            <div className="mockup-shadow"></div>
+          </div>
+        </div>
+        <div className="hero-bottom-fade"></div>
       </section>
 
       {error ? <div className="notice-panel">{error}</div> : null}
 
-      <Reveal as="section" className="story-section problem-statement">
-        <span className="eyebrow">The problem</span>
-        <h2>A home price without context is misleading.</h2>
-        <p>
-          Asking price is only the starting point. 
-          Similar homes, local price spread, living space, city patterns, 
-          and model error can all change whether a price looks reasonable. 
-          HomeScope keeps those signals visible before you trust the estimate.
-        </p>
+      <Reveal as="section" className="quick-guide-showcase glass-panel">
+        <div className="showcase-content">
+          <span className="eyebrow">Quick guide</span>
+          <h2>How to use HomeScope</h2>
+
+          <div className="showcase-tabs">
+            {[
+              { title: "Generate Report", desc: "Start here if you already have a listing price to evaluate." },
+              { title: "Explore Market", desc: "Understand local comparable homes and area pricing trends first." },
+              { title: "Model Evidence", desc: "Dive into the technical machine learning details behind the estimate." }
+            ].map((step, i) => (
+              <div
+                key={i}
+                className={`showcase-tab ${activeStep === i ? "active" : ""}`}
+                onClick={() => { setActiveStep(i); setIsPaused(true); }}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                <div className="tab-progress">
+                  <div
+                    className="tab-progress-fill"
+                    style={{
+                      animationDuration: "5s",
+                      animationPlayState: isPaused ? "paused" : "running",
+                      animationName: activeStep === i ? "fillProgress" : "none"
+                    }}
+                  ></div>
+                </div>
+                <h3>{step.title}</h3>
+                <p>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="showcase-visual">
+          <div className="glow-orb showcase-orb"></div>
+          <div className={`visual-pane pane-active-${activeStep}`}>
+            {activeStep === 0 && (
+              <div className="abstract-graphic abstract-report">
+                <div className="doc-mockup">
+                  <div className="doc-line w-full"></div>
+                  <div className="doc-line w-3/4"></div>
+                  <div className="doc-box"></div>
+                </div>
+                <div className="pulse-ring"></div>
+              </div>
+            )}
+            {activeStep === 1 && (
+              <div className="abstract-graphic abstract-market">
+                <div className="bar-chart">
+                  <div className="bar h-1"></div>
+                  <div className="bar h-3"></div>
+                  <div className="bar h-2 active-bar"></div>
+                  <div className="bar h-4"></div>
+                  <div className="bar h-2"></div>
+                </div>
+              </div>
+            )}
+            {activeStep === 2 && (
+              <div className="abstract-graphic abstract-model">
+                <div className="nodes-mesh">
+                  <div className="node n1"></div>
+                  <div className="node n2"></div>
+                  <div className="node n3"></div>
+                  <div className="node n4"></div>
+                  <svg className="edges">
+                    <line x1="20%" y1="20%" x2="80%" y2="50%" stroke="var(--gold-soft)" strokeWidth="2" opacity="0.4" />
+                    <line x1="20%" y1="80%" x2="80%" y2="50%" stroke="var(--gold-soft)" strokeWidth="2" opacity="0.4" />
+                    <line x1="20%" y1="20%" x2="20%" y2="80%" stroke="var(--gold-soft)" strokeWidth="2" opacity="0.2" />
+                  </svg>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </Reveal>
 
-      <section className="story-section">
+      <section className="story-section horizontal-minimalist-section">
+        <div className="hm-layout">
+          <div className="hm-left">
+            <Reveal className="hm-sticky-heading">
+              <span className="eyebrow">How HomeScope works</span>
+              <h2>A clear path from listing price to research estimate.</h2>
+              <p className="hm-subtext">We've broken down the complex valuation process into four transparent, easy-to-understand steps.</p>
+            </Reveal>
+          </div>
+
+          <div className="hm-right">
+            <div className="hm-panels-grid">
+              {howItWorks.map(([number, title, copy], index) => {
+                return (
+                  <Reveal as="article" className="hm-panel" delay={index ? "1" : undefined} key={title}>
+                    <div className="hm-panel-header">
+                      <span className="hm-number">{number}</span>
+                    </div>
+                    <h3>{title}</h3>
+                    <p>{copy}</p>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="story-section flow-section">
         <Reveal className="section-heading">
-          <span className="eyebrow">Two paths</span>
-          <h2>How can HomeScope help you?</h2>
+          <span className="eyebrow">Recommended flow</span>
+          <h2>Start with the report. Use the evidence when it helps.</h2>
         </Reveal>
-        <div className="path-grid">
-          <Reveal as="article" className="path-card">
-            <span>01</span>
-            <h3>Explore Market</h3>
-            <p>Filter by location and property basics, then read the market snapshot and evidence charts.</p>
-            <button type="button" className="text-button" onClick={() => setActivePage("market")}>Open Market</button>
+        <div className="bento-grid bento-flow clean-bento premium-bento">
+          <Reveal as="article" className="bento-card clean-card span-2-col span-2-row step-1-card has-glow">
+            <div className="ambient-glow"></div>
+            <div className="noise-overlay"></div>
+            <span className="clean-badge">STEP 1</span>
+            <div className="card-center-title">
+              <h3>Generate a valuation report</h3>
+            </div>
+            <div className="card-bottom-content">
+              <p>Enter a listing and compare the asking price with HomeScope's fair value estimate.</p>
+              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("predict")}>
+                <span className="btn-text">Generate Valuation Report</span>
+                <span className="btn-arrow">&mdash;</span>
+              </button>
+            </div>
           </Reveal>
-          <Reveal as="article" className="path-card featured" delay="1">
-            <span>02</span>
-            <h3>Generate Valuation Report</h3>
-            <p>Enter a listing and compare asking price with predicted fair value, range, assumptions, and limits.</p>
-            <button type="button" className="text-button" onClick={() => setActivePage("predict")}>Create Report</button>
+          <Reveal as="article" className="bento-card clean-card span-2-col" delay="1">
+            <div className="noise-overlay"></div>
+            <div className="card-top-row">
+              <span className="clean-badge">STEP 2</span>
+              <div className="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="14" width="4" height="7" rx="1"/>
+                  <rect x="10" y="8" width="4" height="13" rx="1"/>
+                  <rect x="17" y="3" width="4" height="18" rx="1"/>
+                </svg>
+              </div>
+            </div>
+            <h3>Review comparable market context</h3>
+            <p>Use Market to see similar records, price spread, city averages, and broader trend context.</p>
+            <div className="card-action">
+              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("market")}>
+                <span className="btn-text">Explore Market First</span>
+                <span className="btn-arrow">&mdash;</span>
+              </button>
+            </div>
+          </Reveal>
+          <Reveal as="article" className="bento-card clean-card span-2-col" delay="2">
+            <div className="noise-overlay"></div>
+            <div className="card-top-row">
+              <span className="clean-badge">STEP 3</span>
+              <div className="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </div>
+            </div>
+            <h3>Optional: review model evidence</h3>
+            <p>Open the technical evidence only if you want to see how the estimate was produced.</p>
+            <div className="card-action">
+              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("model")}>
+                <span className="btn-text">Review Model Evidence</span>
+                <span className="btn-arrow">&mdash;</span>
+              </button>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      <Reveal as="section" className="transparency-strip">
-        <div>
-          <span className="eyebrow">Model transparency</span>
-          <h2>Evidence is available when you need it.</h2>
-        </div>
-        <p>
-          The Model page explains the selected model, error metrics, residuals, and feature importance.
-        </p>
-        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>
-      </Reveal>
-
       <Reveal as="section" className="final-cta">
         <span className="eyebrow">Next step</span>
-        <h2>Review the market, then generate the valuation report.</h2>
+        <h2>Generate the valuation report first.</h2>
+        <p>Market context and model evidence are available after that if you want to dig deeper.</p>
         <div className="hero-actions">
-          <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Start with Market</button>
-          <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Predict Fair Value</button>
+          <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
+          <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Explore Market First</button>
         </div>
       </Reveal>
     </div>

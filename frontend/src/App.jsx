@@ -9,7 +9,7 @@ const pages = [
   { id: "overview", label: "Overview" },
   { id: "market", label: "Market" },
   { id: "predict", label: "Predict" },
-  { id: "model", label: "Model" },
+  { id: "model", label: "Model Evidence" },
 ];
 
 const pageComponents = {

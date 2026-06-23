@@ -76,70 +76,81 @@ export default function ModelPage({ setActivePage }) {
   const featureImportance = pick(modelData, ["feature_importance"], []);
   const errorByRange = pick(modelData, ["error_by_price_range"], []);
   const examples = pick(modelData, ["prediction_examples"], {});
-  const bestMae = selectedModel?.best_mae ?? modelDetail?.best_mae;
+  const averageModelError = selectedModel?.best_mae ?? modelDetail?.best_mae;
+  const trainingRecords = modelDetail?.rows_trained ?? artifact?.dataset_row_count_after_cleaning ?? 0;
+  const inputCount = modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length;
   const maeBars = metrics.map((item) => ({ label: item.name || item.model || "Model", value: item.mae ?? item.MAE }));
   const errorBars = errorByRange.map((item) => ({ label: item.label, value: item.mae }));
 
   return (
     <div className="screen-stack">
       <PageHeader
-        eyebrow="Model evidence"
-        title="The technical support behind the report."
-        copy="This page is for checking the selected model, error context, residuals, and important inputs behind HomeScope's valuation report."
+        eyebrow="Model Evidence"
+        title="Optional technical details behind the valuation report."
+        copy="This page explains the model used by HomeScope for users who want extra evidence behind the estimate."
         aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Report</button>}
       />
 
       {error ? <div className="error-panel">{error}</div> : null}
       {loading ? <div className="loading-panel">Loading model evidence...</div> : null}
 
+      <section className="panel optional-evidence-banner">
+        <span className="eyebrow">Optional section</span>
+        <h2>You do not need to understand this page to use HomeScope.</h2>
+        <p>This section is for users who want to see how the estimate was produced. Start with the Valuation Report for the main product flow.</p>
+      </section>
+
       <section className="metric-grid">
-        <MetricCard label="Selected model" value={bestModel} tone="gold" />
-        <MetricCard label="Best MAE" value={currency.format(bestMae ?? 0)} detail="Average dollar error on test listings" />
-        <MetricCard label="Rows trained" value={(modelDetail?.rows_trained ?? artifact?.dataset_row_count_after_cleaning ?? 0).toLocaleString()} tone="blue" />
-        <MetricCard label="Features used" value={modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} />
+        <MetricCard label="Model used for this report" value={bestModel} tone="gold" />
+        <MetricCard label="Average model error" value={currency.format(averageModelError ?? 0)} detail="Average miss during testing" />
+        <MetricCard label="Records used to train model" value={trainingRecords.toLocaleString()} tone="blue" />
+        <MetricCard label="Inputs reviewed" value={inputCount} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} />
       </section>
 
       <section className="panel selected-model-panel">
         <div className="panel-heading">
-          <span>Selected model</span>
+          <span>Plain-English summary</span>
           <h2>{selectedModel?.name || bestModel}</h2>
           <p>{selectedModel?.reason || "The backend did not return a selected-model explanation."}</p>
         </div>
-        <div className="selected-model-badge">Active prediction model</div>
+        <div className="selected-model-badge">Model used for this report</div>
         <div className="model-detail-grid">
             <div>
-              <span>Artifact</span>
+              <span>Saved model status</span>
               <strong>{modelDetail?.artifact_loaded || artifact?.artifact_loaded ? "Saved model loaded" : "In-memory fallback"}</strong>
             </div>
             <div>
-              <span>Source</span>
+              <span>Data source</span>
               <strong>{modelDetail?.source || artifact?.source || "Unknown"}</strong>
             </div>
             <div>
-              <span>Best MAE</span>
-              <strong>{currency.format(bestMae ?? 0)}</strong>
+              <span>Average model error</span>
+              <strong>{currency.format(averageModelError ?? 0)}</strong>
             </div>
             <div>
-              <span>Feature count</span>
-              <strong>{modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length}</strong>
+              <span>Inputs reviewed</span>
+              <strong>{inputCount}</strong>
             </div>
         </div>
       </section>
 
-      <details className="panel metric-guide-panel">
-        <summary>
-          <span>Plain-language guide</span>
-          How to read model error
-        </summary>
+      <section className="panel metric-guide-panel">
+        <div className="panel-heading">
+          <span>Beginner explanation</span>
+          <h2>How to read this page</h2>
+        </div>
         <div className="metric-guide-grid">
-          <p><strong>MAE</strong> is the average dollar gap between predicted and actual prices. Lower is better.</p>
-          <p><strong>RMSE</strong> penalizes large misses more heavily, making outlier errors easier to spot.</p>
-          <p><strong>R²</strong> shows how much price movement the model explains. Closer to 1 is stronger.</p>
-          <p><strong>Residual plot</strong> shows prediction misses around zero. Wider spread means more uncertainty.</p>
+          <p><strong>MAE means average model error.</strong> Lower is better.</p>
+          <p><strong>RMSE gives extra weight to large misses.</strong> It helps show outlier risk.</p>
+          <p><strong>R² shows how much price movement the model explains.</strong> Closer to 1 is stronger.</p>
           <p><strong>Feature importance</strong> shows which inputs most influenced the selected model.</p>
         </div>
-      </details>
+      </section>
 
+      <div className="section-label">
+        <span>Model comparison</span>
+        <p>These cards compare the models HomeScope tested. The selected model is used by the valuation report.</p>
+      </div>
       <section className="model-comparison-grid">
         {metrics.length ? metrics.map((item) => {
           const isSelected = item.name === bestModel;
@@ -152,15 +163,15 @@ export default function ModelPage({ setActivePage }) {
               </div>
               <dl>
                 <div>
-                  <dt>MAE</dt>
+                  <dt>Average error</dt>
                   <dd>{currency.format(item.mae ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt>RMSE</dt>
+                  <dt>Large-error check</dt>
                   <dd>{currency.format(item.rmse ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt>R²</dt>
+                  <dt>Price explained</dt>
                   <dd>{Number(item.r2 ?? 0).toFixed(3)}</dd>
                 </div>
               </dl>
@@ -169,14 +180,42 @@ export default function ModelPage({ setActivePage }) {
         }) : <div className="empty-visual">No model metrics were returned by the backend.</div>}
       </section>
 
-      <section className="model-evidence-layout">
+      <details className="panel model-table-card">
+        <summary>
+          <span>Detailed technical evidence</span>
+          MAE, RMSE, and R² table
+        </summary>
+        <div className="details-content">
+          {metrics.length ? (
+            <div className="model-table">
+              <div className="model-row header">
+                <span>Model</span>
+                <span>MAE average error</span>
+                <span>RMSE large misses</span>
+                <span>R² explained movement</span>
+              </div>
+              {metrics.map((item) => (
+                <div className="model-row" key={item.name}>
+                  <span>{item.name}</span>
+                  <span>{currency.format(item.mae ?? 0)}</span>
+                  <span>{currency.format(item.rmse ?? 0)}</span>
+                  <span>{Number(item.r2 ?? 0).toFixed(3)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-visual">No model metrics were returned by the backend.</div>
+          )}
+        </div>
+      </details>
 
-        <article className="panel feature-importance-panel">
-          <div className="panel-heading">
-            <span>Feature importance</span>
-            <h2>What drives the selected model</h2>
-            <p>Higher values indicate stronger influence on the model's prediction behavior.</p>
-          </div>
+      <details className="panel feature-importance-panel">
+        <summary>
+          <span>Feature importance</span>
+          What affects this estimate
+        </summary>
+        <div className="details-content">
+          <p className="details-intro">Higher values mean that input had more influence on the model's prediction behavior.</p>
           {featureImportance.length ? (
             <div className="importance-list">
               {featureImportance.map((item) => (
@@ -190,88 +229,70 @@ export default function ModelPage({ setActivePage }) {
           ) : (
             <div className="empty-visual">Feature importance is available when the selected model exposes importance scores.</div>
           )}
-        </article>
-      </section>
-
-      <section className="panel model-table-card">
-        <div className="panel-heading">
-          <span>Full comparison</span>
-          <h2>MAE, RMSE, and R²</h2>
         </div>
-        {metrics.length ? (
-          <div className="model-table">
-            <div className="model-row header">
-              <span>Model</span>
-              <span>MAE</span>
-              <span>RMSE</span>
-              <span>R²</span>
-            </div>
-            {metrics.map((item) => (
-              <div className="model-row" key={item.name}>
-                <span>{item.name}</span>
-                <span>{currency.format(item.mae ?? 0)}</span>
-                <span>{currency.format(item.rmse ?? 0)}</span>
-                <span>{Number(item.r2 ?? 0).toFixed(3)}</span>
+      </details>
+
+      <details className="panel error-analysis-panel">
+        <summary>
+          <span>Error analysis</span>
+          Where estimates are more or less precise
+        </summary>
+        <div className="details-content">
+          <section className="chart-grid">
+            <ChartCard title="Average model error by model" description="Lower values mean smaller average dollar misses during testing.">
+              <BarChart data={maeBars} tone="mixed" layout="horizontal" />
+            </ChartCard>
+            <ChartCard title="Error by price range" description="Shows where the model tends to be less precise across lower and higher price bands.">
+              <BarChart data={errorBars} tone="coral" layout="horizontal" />
+            </ChartCard>
+          </section>
+          <section className="chart-grid">
+            <ChartCard title="Prediction error plot" description="Dots near zero are better. A wide spread means the valuation report should be read with more caution.">
+              <ScatterChart data={residuals} residual />
+            </ChartCard>
+            <article className="panel prediction-examples-panel">
+              <div className="panel-heading">
+                <span>Prediction examples</span>
+                <h2>Close, too high, and too low</h2>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-visual">No model metrics were returned by the backend.</div>
-        )}
-      </section>
-
-      <section className="chart-grid">
-        <ChartCard title="MAE by model" description="Lower MAE means smaller average dollar misses on the test split.">
-          <BarChart data={maeBars} tone="mixed" layout="horizontal" />
-        </ChartCard>
-        <ChartCard title="Error by price range" description="Shows where the model tends to be less precise across lower and higher price bands.">
-          <BarChart data={errorBars} tone="coral" layout="horizontal" />
-        </ChartCard>
-      </section>
-
-      <section className="chart-grid">
-        <ChartCard title="Residual plot" description="Residuals near zero are better. A wide spread means the valuation report should be read with more caution.">
-          <ScatterChart data={residuals} residual />
-        </ChartCard>
-        <article className="panel prediction-examples-panel">
-          <div className="panel-heading">
-            <span>Prediction examples</span>
-            <h2>Close, too high, and too low</h2>
-          </div>
-          <div className="example-columns">
-            {[
-              ["Close", examples.close || []],
-              ["Predicted too high", examples.too_high || []],
-              ["Predicted too low", examples.too_low || []],
-            ].map(([label, rows]) => (
-              <div key={label}>
-                <strong>{label}</strong>
-                {rows.length ? (
-                  <ul>
-                    {rows.slice(0, 3).map((item) => <li key={`${label}-${item.actual_price}-${item.predicted_price}`}>{formatExample(item)}</li>)}
-                  </ul>
-                ) : (
-                  <p>No examples in the current residual sample.</p>
-                )}
+              <div className="example-columns">
+                {[
+                  ["Close", examples.close || []],
+                  ["Predicted too high", examples.too_high || []],
+                  ["Predicted too low", examples.too_low || []],
+                ].map(([label, rows]) => (
+                  <div key={label}>
+                    <strong>{label}</strong>
+                    {rows.length ? (
+                      <ul>
+                        {rows.slice(0, 3).map((item) => <li key={`${label}-${item.actual_price}-${item.predicted_price}`}>{formatExample(item)}</li>)}
+                      </ul>
+                    ) : (
+                      <p>No examples in the current error sample.</p>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </article>
-      </section>
+            </article>
+          </section>
+        </div>
+      </details>
 
-      <section className="panel limitations-panel">
-        <div className="panel-heading">
+      <details className="panel limitations-panel">
+        <summary>
           <span>Limitations</span>
-          <h2>Use the estimate carefully.</h2>
+          Use the estimate carefully
+        </summary>
+        <div className="details-content">
+          <ul>
+            {(pick(modelData, ["limitation_notes", "limitations"], []) || [
+              "This is a research estimate, not a real appraisal.",
+              "Unusual listings and local location effects can increase prediction error.",
+              "National trend context is market background, not a direct listing-level appraisal input.",
+            ]).map((note) => <li key={note}>{note}</li>)}
+          </ul>
         </div>
-        <ul>
-          {(pick(modelData, ["limitation_notes", "limitations"], []) || [
-            "This is a research estimate, not a real appraisal.",
-            "Outliers and local location effects can increase prediction error.",
-            "National ASPUS trend context is not used as a listing-level prediction input.",
-          ]).map((note) => <li key={note}>{note}</li>)}
-        </ul>
-      </section>
+      </details>
     </div>
   );
 }

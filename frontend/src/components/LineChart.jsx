@@ -7,7 +7,7 @@ function compact(value) {
   return Number.isInteger(number) ? `${number}` : number.toFixed(1);
 }
 
-export default function LineChart({ data = [] }) {
+export default function LineChart({ data = [], yLabel = "Value" }) {
   const [active, setActive] = useState(null);
   const rows = data
     .map((item) => ({ label: item.label || item.date || item.period, value: Number(item.value ?? item.price) }))
@@ -19,8 +19,8 @@ export default function LineChart({ data = [] }) {
   }
 
   const width = 640;
-  const height = 240;
-  const pad = 34;
+  const height = 270;
+  const pad = 46;
   const values = rows.map((item) => item.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -33,17 +33,24 @@ export default function LineChart({ data = [] }) {
   });
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
   const tickEvery = Math.max(1, Math.ceil(points.length / 5));
+  const yTicks = [min, min + spread / 2, max];
 
   return (
     <div className="interactive-chart">
       <div className="chart-readout">
-        <span>{active?.label || "Hover trend"}</span>
-        <strong>{active ? compact(active.value) : "Inspect points"}</strong>
+        <span>{active?.label || "Point to the line for the value"}</span>
+        <strong>{active ? compact(active.value) : `${rows.length} periods shown`}</strong>
       </div>
-      <svg className="line-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Trend line chart">
-        {[0.25, 0.5, 0.75].map((tick) => (
-          <line key={tick} className="grid-line" x1={pad} x2={width - pad} y1={pad + tick * (height - pad * 2)} y2={pad + tick * (height - pad * 2)} />
-        ))}
+      <svg className="line-chart premium-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Trend line chart">
+        {yTicks.map((tick) => {
+          const y = height - pad - ((tick - min) / spread) * (height - pad * 2);
+          return (
+            <g key={`y-${tick}`}>
+              <line className="grid-line" x1={pad} x2={width - pad} y1={y} y2={y} />
+              <text className="tick-label" x={pad - 10} y={y + 4} textAnchor="end">{compact(tick)}</text>
+            </g>
+          );
+        })}
         <line className="axis" x1={pad} x2={width - pad} y1={height - pad} y2={height - pad} />
         <line className="axis" x1={pad} x2={pad} y1={pad} y2={height - pad} />
         <path className="line-path" d={path} />
@@ -54,7 +61,7 @@ export default function LineChart({ data = [] }) {
             className={`line-dot ${active?.label === point.label ? "active" : ""}`}
             cx={point.x}
             cy={point.y}
-            r={active?.label === point.label ? 5 : index === points.length - 1 ? 4 : 2.5}
+            r={active?.label === point.label ? 5 : index === points.length - 1 ? 4 : 2}
             onMouseEnter={() => setActive(point)}
           />
         ))}
@@ -62,10 +69,11 @@ export default function LineChart({ data = [] }) {
           <circle key={`hit-${point.label}-${index}`} className="hit-dot" cx={point.x} cy={point.y} r="10" onMouseEnter={() => setActive(point)} />
         ))}
         {points.map((point, index) => index % tickEvery === 0 || index === points.length - 1 ? (
-          <text key={`tick-${point.label}-${index}`} className="tick-label" x={point.x} y={height - 8} textAnchor="middle">
+          <text key={`tick-${point.label}-${index}`} className="tick-label" x={point.x} y={height - 16} textAnchor="middle">
             {String(point.label || "").slice(0, 4)}
           </text>
         ) : null)}
+        <text className="axis-label" x={pad} y={22}>{yLabel}</text>
       </svg>
     </div>
   );

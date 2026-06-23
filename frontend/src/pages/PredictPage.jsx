@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import BarChart from "../components/BarChart";
 import ChartCard from "../components/ChartCard";
-import MetricCard from "../components/MetricCard";
 import PageHeader from "../components/PageHeader";
 import { getFilters, predictListing } from "../services/api";
 
@@ -132,7 +131,6 @@ export default function PredictPage({ setActivePage }) {
   const predicted = pick(result, ["predicted_fair_value", "predicted_value", "prediction"], 0);
   const listing = pick(result, ["listing_price"], form.listing_price);
   const difference = result ? pick(result, ["difference"], listing - predicted) : 0;
-  const percent = pick(result, ["percent_difference", "percentage_difference"], 0);
   const marketLabel = pick(result, ["signal", "market_label", "label"], "Run a prediction");
   let signalTone = "neutral";
   const lbl = String(marketLabel).toLowerCase();
@@ -145,13 +143,13 @@ export default function PredictPage({ setActivePage }) {
   const assumptions = pick(result, ["assumptions_used", "assumptions"], []);
   const fairValueRange = pick(result, ["fair_value_range"], null);
   const modelMae = pick(result, ["model_mae"], null);
-  const resultExplanation = pick(result, ["result_explanation"], "Submit the form to generate a model-backed comparison.");
+  const resultExplanation = pick(result, ["result_explanation"], "Submit the form to generate a research estimate.");
   const errorContext = pick(result, ["model_error_context"], "");
   const limitations = pick(result, ["limitations"], []);
   const assumptionRows = useMemo(() => normalizeAssumptions(assumptions), [assumptions]);
   const comparisonBars = useMemo(() => result ? [
-    { label: "Predicted fair value", value: Number(predicted) || 0 },
-    { label: "Listing price", value: Number(listing) || 0 },
+    { label: "Fair value estimate", value: Number(predicted) || 0 },
+    { label: "Asking/listing price", value: Number(listing) || 0 },
   ] : [], [result, predicted, listing]);
 
   return (
@@ -159,154 +157,160 @@ export default function PredictPage({ setActivePage }) {
       <PageHeader
         eyebrow="Valuation Report"
         title="Generate a HomeScope Valuation Report."
-        copy="Enter the visible listing details. HomeScope adds available market context and returns a research estimate with range, assumptions, and limitations."
-        aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review model first</button>}
+        copy="Enter the visible listing details. HomeScope will compare the listing against market records and return a research estimate with a fair value range, price signal, and limitations."
+        aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>}
       />
 
       {error ? <div className="error-panel">{error}</div> : null}
 
-      <section className="prediction-layout">
-        <div className="prediction-main-stack">
-          <form className="panel prediction-card" onSubmit={handleSubmit} noValidate>
-            <div className="panel-heading">
-              <span>Listing inputs</span>
-              <h2>Property details for the report</h2>
-              <p>Use the core facts from the listing. The report will disclose any market assumptions used behind the scenes.</p>
-            </div>
-            <div className="form-grid">
-              <label>
-                <span>State</span>
-                <select value={form.state} onChange={(event) => updateField("state", event.target.value)}>
-                  {(options.states || ["All"]).map((state) => <option key={state} value={state}>{state}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>City</span>
-                <select value={form.city} onChange={(event) => updateField("city", event.target.value)}>
-                  {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Beds</span>
-                <input type="number" min="0" required value={form.beds} onChange={(event) => updateField("beds", event.target.value)} />
-              </label>
-              <label>
-                <span>Baths</span>
-                <input type="number" min="0" required value={form.baths} onChange={(event) => updateField("baths", event.target.value)} />
-              </label>
-              <label>
-                <span>Living space</span>
-                <input type="number" min="1" required value={form.living_space} onChange={(event) => updateField("living_space", event.target.value)} />
-              </label>
-              <label>
-                <span>Listing price</span>
-                <input type="number" min="1" required value={form.listing_price} onChange={(event) => updateField("listing_price", event.target.value)} />
-              </label>
-            </div>
-            <button type="submit" className="primary-button prediction-submit" disabled={loading}>
-              {loading ? "Generating report..." : "Generate Valuation Report"}
-            </button>
-          </form>
-
-          {result ? (
-            <>
-              <ChartCard title="Valuation comparison" description="A simple comparison between the entered listing price and the model's fair-value estimate.">
-                <BarChart data={comparisonBars} tone="mixed" layout="horizontal" />
-              </ChartCard>
-
-              <section className="panel limitations-panel">
-                <div className="panel-heading">
-                  <span>Report limits</span>
-                  <h2>Research estimate, not an appraisal.</h2>
-                  <p>Use this report as decision support. It does not replace a licensed appraisal, inspection, underwriting review, or local expert judgment.</p>
-                </div>
-                <ul>
-                  {(limitations.length ? limitations : [
-                    "This is a research estimate, not a real appraisal.",
-                    "Outliers and local location effects can increase prediction error.",
-                  ]).map((note) => <li key={note}>{note}</li>)}
-                </ul>
-              </section>
-            </>
-          ) : (
-            <section className="panel prediction-hint-panel">
-              <div className="panel-heading">
-                <span>Before prediction</span>
-                <h2>Your report will appear on the right.</h2>
-                <p>The pending state is intentional: fair value, range, signal, assumptions, and model context populate after generation.</p>
-              </div>
-            </section>
-          )}
-        </div>
-
-        <aside className="result-stack">
-          <article className={`panel valuation-report ${result ? "ready" : "pending"}`}>
-            <span>HomeScope Valuation Report</span>
-            <h2>{result ? currency.format(predicted) : "Pending estimate"}</h2>
-            <p className="range-line">
-              {result && fairValueRange
-                ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)} fair-value range`
-                : "Run a prediction to calculate a fair-value range."}
-            </p>
-            <p className="report-warning">Research estimate, not an appraisal.</p>
-            <div className="signal-band">
-              <span>Price signal</span>
-              <strong className={`signal-badge ${signalTone}`}>{marketLabel}</strong>
-            </div>
-            <p>{resultExplanation}</p>
-          </article>
-          <div className="result-metric-pair">
-            <MetricCard label="Listing price" value={currency.format(listing)} detail="Entered asking price" tone="blue" />
-            <MetricCard label="Difference" value={result ? currency.format(difference) : "Pending"} detail={result ? `${Number(percent || 0).toFixed(1)}% from fair value` : "Submit the form to compare"} tone="gold" />
+      <section className="prediction-flow">
+        {/* Step 1: Input */}
+        <form className="panel prediction-card" onSubmit={handleSubmit} noValidate>
+          <div className="panel-heading">
+            <span>Listing inputs</span>
+            <h2>Property details for the report</h2>
+            <p>Use the core facts from the listing. If HomeScope needs background market details, they appear in a secondary assumptions section.</p>
           </div>
-          <article className="panel report-summary-panel">
-            <div className="panel-heading">
-              <span>Report summary</span>
-              <h2>What this result includes</h2>
-            </div>
-            <div className="report-summary-grid">
-              <div>
-                <span>Fair value</span>
-                <strong>{result ? currency.format(predicted) : "Pending"}</strong>
-              </div>
-              <div>
-                <span>Range</span>
-                <strong>{result && fairValueRange ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)}` : "Pending"}</strong>
-              </div>
-              <div>
-                <span>Signal</span>
-                <strong>{marketLabel}</strong>
-              </div>
-              <div>
-                <span>Model error</span>
-                <strong>{result && modelMae ? currency.format(modelMae) : "Shown after generation"}</strong>
-              </div>
-            </div>
-          </article>
-          <article className="panel result-label">
-            <span>Model used</span>
-            <strong>{modelName}</strong>
-            <p>{result ? (errorContext || `Fair value is shown with ${currency.format(modelMae || 0)} MAE context.`) : "Model evidence appears after prediction."}</p>
-          </article>
+          <div className="form-grid">
+            <label>
+              <span>State</span>
+              <select value={form.state} onChange={(event) => updateField("state", event.target.value)}>
+                {(options.states || ["All"]).map((state) => <option key={state} value={state}>{state}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>City</span>
+              <select value={form.city} onChange={(event) => updateField("city", event.target.value)}>
+                {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Beds</span>
+              <input type="number" min="0" required value={form.beds} onChange={(event) => updateField("beds", event.target.value)} />
+            </label>
+            <label>
+              <span>Baths</span>
+              <input type="number" min="0" required value={form.baths} onChange={(event) => updateField("baths", event.target.value)} />
+            </label>
+            <label>
+              <span>Living space</span>
+              <input type="number" min="1" value={form.living_space} required onChange={(event) => updateField("living_space", event.target.value)} />
+            </label>
+            <label>
+              <span>Listing price</span>
+              <input type="number" min="1" value={form.listing_price} required onChange={(event) => updateField("listing_price", event.target.value)} />
+            </label>
+          </div>
+          <button type="submit" className="primary-button prediction-submit" disabled={loading}>
+            {loading ? "Generating report..." : "Generate Valuation Report"}
+          </button>
+        </form>
 
-          {result ? (
-            <details className="panel assumptions-panel">
-              <summary>
-                <span>Assumptions</span>
-                Market context used by the model
-              </summary>
-              <p>These fields are filled from the selected city medians when the form does not collect them directly.</p>
-              <dl className="assumption-list">
-                {assumptionRows.map((item) => (
-                  <div key={item.key}>
-                    <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
-                  </div>
-                ))}
+        {!result ? (
+          <section className="panel prediction-hint-panel">
+            <div className="panel-heading">
+              <span>Before prediction</span>
+              <h2>Your report will appear below.</h2>
+              <p>The report will show fair value, range, asking price, price signal, and limitations after generation.</p>
+            </div>
+          </section>
+        ) : (
+          <>
+            {/* Step 2: Primary Result */}
+            <article className={`panel valuation-report ${result ? "ready" : "pending"}`}>
+              <span>HomeScope Valuation Report</span>
+              <h2>{result ? currency.format(predicted) : "Pending estimate"}</h2>
+              <p className="range-line">
+                {result && fairValueRange
+                  ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)} fair-value range`
+                  : "Run a prediction to calculate a fair-value range."}
+              </p>
+              <p className="report-warning">
+                Research estimate, not an appraisal. HomeScope uses past housing records and market patterns to estimate a fair value range.
+              </p>
+              <dl className="report-facts-grid">
+                <div>
+                  <dt>Fair value estimate</dt>
+                  <dd>{result ? currency.format(predicted) : "Pending"}</dd>
+                </div>
+                <div>
+                  <dt>Fair value range</dt>
+                  <dd>{result && fairValueRange ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)}` : "Pending"}</dd>
+                </div>
+                <div>
+                  <dt>Asking/listing price</dt>
+                  <dd>{currency.format(listing)}</dd>
+                </div>
+                <div>
+                  <dt>Difference from fair value</dt>
+                  <dd>{result ? currency.format(difference) : "Pending"}</dd>
+                </div>
+                <div>
+                  <dt>Trust note</dt>
+                  <dd>Use this as a research guide, not a final buying decision.</dd>
+                </div>
               </dl>
-            </details>
-          ) : null}
-        </aside>
+            </article>
+
+            {/* Step 3 & 4: Visual Evidence and Technical Details */}
+            <div className="bento-grid">
+              <div className="premium-bento span-2-col">
+                <ChartCard title="Valuation comparison" description="A simple comparison between the entered listing price and the model's fair-value estimate.">
+                  <BarChart data={comparisonBars} tone="mixed" layout="horizontal" />
+                </ChartCard>
+              </div>
+              <div className="premium-bento span-2-col" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <article className="panel result-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div className="signal-band" style={{ marginBottom: '16px' }}>
+                    <span>Price signal</span>
+                    <strong className={`signal-badge ${signalTone}`}>{marketLabel}</strong>
+                  </div>
+                  <p>{resultExplanation}</p>
+                </article>
+                <article className="panel result-label" style={{ flex: 1 }}>
+                  <span>Model used for this report</span>
+                  <strong>{modelName}</strong>
+                  <p>
+                    {errorContext || `During testing, the model's predictions were off by about ${currency.format(modelMae || 0)} on average. This does not mean every estimate is wrong by exactly this amount.`}
+                  </p>
+                </article>
+              </div>
+
+              <div className="premium-bento span-2-col">
+                <details className="panel assumptions-panel">
+                  <summary>
+                    <span>Assumptions</span>
+                    Market context used by the model
+                  </summary>
+                  <p>These fields are filled from the selected city medians when the form does not collect them directly.</p>
+                  <dl className="assumption-list">
+                    {assumptionRows.map((item) => (
+                      <div key={item.key}>
+                        <dt>{item.label}</dt>
+                        <dd>{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </details>
+              </div>
+              <div className="premium-bento span-2-col">
+                <section className="panel limitations-panel">
+                  <div className="panel-heading">
+                    <span>Report limits</span>
+                    <h2>Research estimate, not an appraisal.</h2>
+                    <p>HomeScope uses past housing records and market patterns to estimate a fair value range. Use this as a research guide, not a final buying decision.</p>
+                  </div>
+                  <ul>
+                    {(limitations.length ? limitations : [
+                      "This is a research estimate, not a real appraisal.",
+                      "Outliers and local location effects can increase prediction error.",
+                    ]).map((note) => <li key={note}>{note}</li>)}
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

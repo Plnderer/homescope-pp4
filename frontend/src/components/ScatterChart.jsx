@@ -9,12 +9,12 @@ function compact(value, format = "currency") {
 }
 
 function formatReadout(point, residual) {
-  if (!point) return { x: residual ? "Hover residual" : "Hover point", y: "Inspect points" };
+  if (!point) return { x: residual ? "Point to a dot to read the error" : "Point to a dot to read the listing", y: "Up to 80 records shown" };
   if (residual) return { x: `Predicted ${compact(point.x)}`, y: `Residual ${compact(point.y)}` };
   return { x: `${compact(point.x, "number")} sq ft`, y: compact(point.y) };
 }
 
-export default function ScatterChart({ data = [], residual = false }) {
+export default function ScatterChart({ data = [], residual = false, xLabel, yLabel }) {
   const [active, setActive] = useState(null);
   const readout = formatReadout(active, residual);
   const rows = data
@@ -30,8 +30,8 @@ export default function ScatterChart({ data = [], residual = false }) {
   }
 
   const width = 640;
-  const height = 250;
-  const pad = 36;
+  const height = 280;
+  const pad = 48;
   const minX = Math.min(...rows.map((item) => item.x));
   const maxX = Math.max(...rows.map((item) => item.x));
   const minY = residual ? Math.min(...rows.map((item) => item.y), 0) : Math.min(...rows.map((item) => item.y));
@@ -42,6 +42,10 @@ export default function ScatterChart({ data = [], residual = false }) {
   const mapX = (value) => pad + ((value - minX) / spreadX) * (width - pad * 2);
   const mapY = (value) => height - pad - ((value - minY) / spreadY) * (height - pad * 2);
   const zeroY = mapY(0);
+  const xTicks = [minX, minX + spreadX / 2, maxX];
+  const yTicks = [minY, minY + spreadY / 2, maxY];
+  const finalXLabel = xLabel || (residual ? "Predicted price" : "Living space");
+  const finalYLabel = yLabel || (residual ? "Error" : "Price");
 
   return (
     <div className="interactive-chart">
@@ -49,17 +53,23 @@ export default function ScatterChart({ data = [], residual = false }) {
         <span>{readout.x}</span>
         <strong>{readout.y}</strong>
       </div>
-      <svg className="scatter-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={residual ? "Residual scatter plot" : "Scatter plot"}>
-        {[0.25, 0.5, 0.75].map((tick) => (
-          <line key={tick} className="grid-line" x1={pad} x2={width - pad} y1={pad + tick * (height - pad * 2)} y2={pad + tick * (height - pad * 2)} />
+      <svg className="scatter-chart premium-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={residual ? "Residual scatter plot" : "Scatter plot"}>
+        {yTicks.map((tick) => (
+          <g key={`y-${tick}`}>
+            <line className="grid-line" x1={pad} x2={width - pad} y1={mapY(tick)} y2={mapY(tick)} />
+            <text className="tick-label" x={pad - 10} y={mapY(tick) + 4} textAnchor="end">{compact(tick)}</text>
+          </g>
+        ))}
+        {xTicks.map((tick) => (
+          <text key={`x-${tick}`} className="tick-label" x={mapX(tick)} y={height - 16} textAnchor="middle">
+            {residual ? compact(tick) : compact(tick, "number")}
+          </text>
         ))}
         <line className="axis" x1={pad} x2={width - pad} y1={height - pad} y2={height - pad} />
         <line className="axis" x1={pad} x2={pad} y1={pad} y2={height - pad} />
         {residual ? (
           <line className="zero-line" x1={pad} x2={width - pad} y1={zeroY} y2={zeroY} />
-        ) : (
-          <line className="trend-line" x1={pad} x2={width - pad} y1={height - pad - 18} y2={pad + 24} />
-        )}
+        ) : null}
         {rows.map((point, index) => {
           const isActive = active?.x === point.x && active?.y === point.y;
           return (
@@ -76,11 +86,11 @@ export default function ScatterChart({ data = [], residual = false }) {
         {rows.map((point, index) => (
           <circle key={`hit-${point.x}-${point.y}-${index}`} className="hit-dot" cx={mapX(point.x)} cy={mapY(point.y)} r="9" onMouseEnter={() => setActive(point)} />
         ))}
-        <text className="axis-label" x={width - pad} y={height - 8} textAnchor="end">
-          {residual ? "Predicted" : "Living space"}
+        <text className="axis-label" x={width - pad} y={height - 2} textAnchor="end">
+          {finalXLabel}
         </text>
-        <text className="axis-label" x={pad} y={20}>
-          {residual ? "Residual" : "Price"}
+        <text className="axis-label" x={pad} y={22}>
+          {finalYLabel}
         </text>
       </svg>
     </div>

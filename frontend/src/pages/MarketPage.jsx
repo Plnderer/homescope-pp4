@@ -3,12 +3,19 @@ import BarChart from "../components/BarChart";
 import ChartCard from "../components/ChartCard";
 import LineChart from "../components/LineChart";
 import MetricCard from "../components/MetricCard";
-import PageHeader from "../components/PageHeader";
+import PriceDistributionChart from "../components/PriceDistributionChart";
 import ScatterChart from "../components/ScatterChart";
 import { getFilters, getMarket } from "../services/api";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
+function compactCurrency(value) {
+  const number = Number(value) || 0;
+  if (Math.abs(number) >= 1000000) return `$${(number / 1000000).toFixed(1)}M`;
+  if (Math.abs(number) >= 1000) return `$${Math.round(number / 1000)}K`;
+  return currency.format(number);
+}
 
 function pick(data, keys, fallback = 0) {
   for (const key of keys) {
@@ -22,6 +29,15 @@ function normalizeBars(rows, labelKeys, valueKeys) {
     label: pick(item, labelKeys, item.label),
     value: pick(item, valueKeys, item.value),
   }));
+}
+
+function readablePriceBucket(label) {
+  const text = String(label || "");
+  const numbers = text.replace(/,/g, "").match(/\d+(?:\.\d+)?/g);
+  if (!numbers || numbers.length < 2) return text;
+  const [low, high] = numbers.map(Number);
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return text;
+  return `${compactCurrency(low)}-${compactCurrency(high)}`;
 }
 
 export default function MarketPage({ setActivePage }) {
@@ -64,10 +80,14 @@ export default function MarketPage({ setActivePage }) {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  const histogram = useMemo(() => normalizeBars(pick(market, ["price_distribution", "histogram", "histogram_buckets"], []), ["label", "bucket"], ["value", "count"]), [market]);
-  const cityAverages = useMemo(() => normalizeBars(pick(market, ["top_city_averages", "city_averages"], []), ["label", "city"], ["value", "average_price", "avg_price"]), [market]);
+  const histogram = useMemo(() => normalizeBars(
+    pick(market, ["price_distribution", "histogram", "histogram_buckets"], []),
+    ["label", "bucket"],
+    ["value", "count"],
+  ).map((item) => ({ ...item, label: readablePriceBucket(item.label) })), [market]);
   const scatter = pick(market, ["scatter_points", "price_vs_living_space"], []);
   const trend = pick(market, ["aspus_trend", "trend"], []);
+  const matchingCount = pick(market, ["matching_count", "count"]);
 
   function updateFilter(key, value) {
     setFilters((current) => ({
@@ -79,30 +99,34 @@ export default function MarketPage({ setActivePage }) {
 
   return (
     <div className="screen-stack">
-      <PageHeader
-        eyebrow="Market report"
-        title="A calmer read on comparable homes."
-        copy="Choose a market and property profile, then review the summary and evidence charts before generating a valuation report."
-        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Report</button>}
-      />
-
-      <section className="panel control-panel market-filter-panel">
-        <div className="panel-heading">
-          <span>Market Filters</span>
-          <h2>Define the comparison set</h2>
-          <p>Start with location, then narrow the property profile. Leave maximum sq ft at 0 when no upper limit is needed.</p>
+      <section className="market-hero">
+        <div className="market-hero-glow"></div>
+        <div className="market-hero-content text-center">
+          <span className="eyebrow" style={{justifyContent: 'center'}}>Market report</span>
+          <h1 className="hero-massive-title">Comparable market context for the report.</h1>
+          <p className="hero-sub">
+            Use this page to build a comparison set of similar homes. These market records help explain whether a listing looks low, fair, or high.
+          </p>
         </div>
-        <div className="filter-groups">
-          <div className="filter-group">
+      </section>
+
+      <section className="premium-filter-panel">
+        <div className="filter-header">
+          <span className="eyebrow">Market filters</span>
+          <h2>Build your comparison set</h2>
+          <p>Choose a location and property size. HomeScope will summarize similar records in that market.</p>
+        </div>
+        <div className="premium-filter-groups">
+          <div className="premium-filter-group">
             <h3>Location</h3>
-            <div className="filter-grid compact">
-              <label>
+            <div className="premium-inputs">
+              <label className="premium-input-wrapper">
                 <span>State</span>
                 <select value={filters.state} onChange={(event) => updateFilter("state", event.target.value)}>
                   {(options.states || ["All"]).map((state) => <option key={state} value={state}>{state}</option>)}
                 </select>
               </label>
-              <label>
+              <label className="premium-input-wrapper">
                 <span>City</span>
                 <select value={filters.city} onChange={(event) => updateFilter("city", event.target.value)}>
                   {(options.cities || ["All"]).map((city) => <option key={city} value={city}>{city}</option>)}
@@ -110,34 +134,40 @@ export default function MarketPage({ setActivePage }) {
               </label>
             </div>
           </div>
-          <div className="filter-group">
+          <div className="premium-filter-group">
             <h3>Property profile</h3>
-            <div className="filter-grid compact four">
-              <label>
+            <div className="premium-inputs four">
+              <label className="premium-input-wrapper">
                 <span>Minimum beds</span>
                 <input type="number" min="1" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
               </label>
-              <label>
+              <label className="premium-input-wrapper">
                 <span>Minimum baths</span>
                 <input type="number" min="1" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
               </label>
-              <label>
+              <label className="premium-input-wrapper">
                 <span>Minimum sq ft</span>
                 <input type="number" min="0" value={filters.min_sqft} onChange={(event) => updateFilter("min_sqft", event.target.value)} />
               </label>
-              <label>
+              <label className="premium-input-wrapper">
                 <span>Maximum sq ft</span>
                 <input type="number" min="0" value={filters.max_sqft} onChange={(event) => updateFilter("max_sqft", event.target.value)} />
               </label>
             </div>
           </div>
         </div>
-        <div className="filter-summary" aria-label="Current filter summary">
-          <span>{filters.state === "All" ? "All states" : filters.state}</span>
-          <span>{filters.city === "All" ? "All cities" : filters.city}</span>
-          <span>{filters.min_beds}+ beds</span>
-          <span>{filters.min_baths}+ baths</span>
-          <span>{integer.format(filters.min_sqft)}+ sq ft</span>
+        <div className="premium-filter-footer">
+          <div className="glass-tags">
+            <span className="glass-tag">{filters.state === "All" ? "All states" : filters.state}</span>
+            <span className="glass-tag">{filters.city === "All" ? "All cities" : filters.city}</span>
+            <span className="glass-tag">{filters.min_beds}+ beds</span>
+            <span className="glass-tag">{filters.min_baths}+ baths</span>
+            <span className="glass-tag">{integer.format(filters.min_sqft)}+ sq ft</span>
+          </div>
+          <div className="live-count">
+            <span className="pulse-dot"></span>
+            <strong>{integer.format(matchingCount)}</strong> active records
+          </div>
         </div>
       </section>
 
@@ -147,40 +177,51 @@ export default function MarketPage({ setActivePage }) {
       <section className="section-stack">
         <div className="section-label">
           <span>Market Snapshot</span>
-          <p>A simple read of the selected comparison set.</p>
+          <p>A simple read of the current comparison set.</p>
         </div>
-        <div className="metric-grid">
-          <MetricCard label="Matching listings" value={integer.format(pick(market, ["matching_count", "count"]))} detail="Comparable records in scope" />
-          <MetricCard label="Average price" value={currency.format(pick(market, ["average_price", "avg_price"]))} detail="Mean across selected records" />
-          <MetricCard label="Median price" value={currency.format(pick(market, ["median_price"]))} detail="Less sensitive to outliers" tone="gold" />
-          <MetricCard label="Average $ / sq ft" value={currency.format(pick(market, ["average_price_per_sqft", "avg_price_per_sqft"]))} detail="Size-adjusted market context" />
+        <div className="bento-grid">
+          <div className="premium-bento metric-bento">
+            <MetricCard label="Records in comparison set" value={integer.format(matchingCount)} detail="Similar records in scope" />
+          </div>
+          <div className="premium-bento metric-bento glow-gold">
+            <MetricCard label="Average price" value={currency.format(pick(market, ["average_price", "avg_price"]))} detail="Mean across selected records" />
+          </div>
+          <div className="premium-bento metric-bento glow-sage">
+            <MetricCard label="Median price" value={currency.format(pick(market, ["median_price"]))} detail="Less sensitive to outliers" />
+          </div>
+          <div className="premium-bento metric-bento glow-blue">
+            <MetricCard label="Average $ / sq ft" value={currency.format(pick(market, ["average_price_per_sqft", "avg_price_per_sqft"]))} detail="Size-adjusted market context" />
+          </div>
         </div>
       </section>
 
       <section className="section-stack">
         <div className="section-label">
           <span>Market Evidence</span>
-          <p>Use these views together: distribution for price spread, city averages for location context, scatter for size relationship, and ASPUS for broad national movement.</p>
+          <p>Use these views as background for the report. They explain the comparison set; they are not a replacement for an appraisal.</p>
         </div>
-        <div className="chart-grid">
-          <ChartCard title="Price distribution" description="Shows whether selected listings cluster in a narrow band or spread across several price ranges.">
-            <BarChart data={histogram} tone="mixed" format="number" />
-          </ChartCard>
-          <ChartCard title="Price vs. living space" description="Compares square footage against price so unusually high or low records are easier to spot.">
-            <ScatterChart data={scatter} />
-          </ChartCard>
-          <ChartCard title="Top city averages" description="Ranks cities inside the current filter, making local price differences easier to compare.">
-            <BarChart data={cityAverages} tone="mixed" layout="horizontal" />
-          </ChartCard>
-          <ChartCard title="National trend context" description="ASPUS adds broad U.S. sales price movement as context, not as a listing-level prediction input.">
-            <LineChart data={trend} />
-          </ChartCard>
+        <div className="bento-grid">
+          <div className="premium-bento span-2-col">
+            <ChartCard title="Price distribution" description="Shows how many similar homes fall into each price range. Large gaps can happen when listings cluster around certain price levels.">
+              <PriceDistributionChart data={histogram} />
+            </ChartCard>
+          </div>
+          <div className="premium-bento span-2-col">
+            <ChartCard title="Price vs. living space" description="Shows how home size relates to price. Points far away from the group may be unusual listings.">
+              <ScatterChart data={scatter} xLabel="Living space" yLabel="Price" />
+            </ChartCard>
+          </div>
+          <div className="premium-bento span-4-col">
+            <ChartCard title="National trend context" description="Shows broad U.S. home price movement over time. This is market background, not a direct appraisal input.">
+              <LineChart data={trend} yLabel="U.S. median sale price" />
+            </ChartCard>
+          </div>
         </div>
       </section>
 
       <div className="action-row">
         <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
-        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review model evidence</button>
+        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>
       </div>
     </div>
   );
