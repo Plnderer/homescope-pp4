@@ -107,7 +107,6 @@ export default function OverviewPage({ setActivePage }) {
               </div>
               <div className="mockup-body">
                 <div className="mockup-row"><div className="mockup-label">Estimated Value</div><div className="mockup-value">$542,500</div></div>
-                <div className="mockup-row"><div className="mockup-label">Confidence</div><div className="mockup-value">High (92%)</div></div>
                 <div className="mockup-chart">
                   <div className="mockup-bar" style={{ width: "40%" }}></div>
                   <div className="mockup-bar" style={{ width: "70%" }}></div>
@@ -229,74 +228,6 @@ export default function OverviewPage({ setActivePage }) {
               })}
             </div>
           </div>
-        </div>
-      </section>
-
-      <section className="story-section flow-section">
-        <Reveal className="section-heading">
-          <span className="eyebrow">Recommended flow</span>
-          <h2>Start with the price check. Use the evidence when it helps.</h2>
-        </Reveal>
-        <div className="bento-grid bento-flow clean-bento premium-bento">
-          <Reveal as="article" className="bento-card clean-card span-2-col span-2-row step-1-card has-glow">
-            <div className="ambient-glow"></div>
-            <div className="noise-overlay"></div>
-            <span className="clean-badge">STEP 1</span>
-            <div className="card-center-title">
-              <h3>Check<br />this home<br />price</h3>
-            </div>
-            <div className="card-bottom-content">
-              <p>Enter a listing and see whether the asking price looks low, fair, or high.</p>
-              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("predict")}>
-                <span className="btn-text">Check Home Price</span>
-                <span className="btn-arrow">&mdash;</span>
-              </button>
-            </div>
-          </Reveal>
-          <Reveal as="article" className="bento-card clean-card span-2-col" delay="1">
-            <div className="noise-overlay"></div>
-            <div className="card-top-row">
-              <span className="clean-badge">STEP 2</span>
-              <div className="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="14" width="4" height="7" rx="1"/>
-                  <rect x="10" y="8" width="4" height="13" rx="1"/>
-                  <rect x="17" y="3" width="4" height="18" rx="1"/>
-                </svg>
-              </div>
-            </div>
-            <h3>See area prices</h3>
-            <p>Use Market to see similar homes, price ranges, and broad U.S. price movement.</p>
-            <div className="card-action">
-              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("market")}>
-                <span className="btn-text">See Area Prices</span>
-                <span className="btn-arrow">&mdash;</span>
-              </button>
-            </div>
-          </Reveal>
-          <Reveal as="article" className="bento-card clean-card span-2-col" delay="2">
-            <div className="noise-overlay"></div>
-            <div className="card-top-row">
-              <span className="clean-badge">STEP 3</span>
-              <div className="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="18" cy="5" r="3"/>
-                  <circle cx="6" cy="12" r="3"/>
-                  <circle cx="18" cy="19" r="3"/>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-                </svg>
-              </div>
-            </div>
-            <h3>Optional: see how it works</h3>
-            <p>Open the explanation only if you want to see how the price check was produced.</p>
-            <div className="card-action">
-              <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("model")}>
-                <span className="btn-text">How It Works</span>
-                <span className="btn-arrow">&mdash;</span>
-              </button>
-            </div>
-          </Reveal>
         </div>
       </section>
 
