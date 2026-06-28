@@ -21,7 +21,7 @@ const howItWorks = [
   ["01", "Enter the listing details", "Start with the visible facts from the listing: location, beds, baths, living space, and asking price."],
   ["02", "Compare similar records", "HomeScope checks the listing against similar housing records and market context."],
   ["03", "Review the fair value range", "Read the estimate, range, price signal, and the note about what the result can and cannot prove."],
-  ["04", "Check evidence if needed", "Use Market for comparable context and Model Evidence only when you want more technical detail."],
+  ["04", "Check evidence if needed", "Use Market for area prices and How It Works only when you want more detail."],
 ];
 
 export default function OverviewPage({ setActivePage }) {
@@ -83,12 +83,11 @@ export default function OverviewPage({ setActivePage }) {
           <span className="eyebrow" style={{justifyContent: 'center'}}>Home Value Intelligence</span>
           <h1 className="hero-massive-title">See what a home is worth.</h1>
           <p className="hero-sub">
-            HomeScope compares a listing against housing records, market context, and model evidence to estimate
-            a fair value range.
+            Enter a few listing details and HomeScope will give you a plain-English read on whether the asking price looks fair.
           </p>
           <div className="hero-actions center-actions">
             <button type="button" className="hero-pill-button" onClick={() => setActivePage("predict")}>
-              Generate Valuation Report
+              Check Home Price
             </button>
           </div>
         </Reveal>
@@ -134,9 +133,9 @@ export default function OverviewPage({ setActivePage }) {
 
           <div className="showcase-tabs">
             {[
-              { title: "Generate Report", desc: "Start here if you already have a listing price to evaluate." },
-              { title: "Explore Market", desc: "Understand local comparable homes and area pricing trends first." },
-              { title: "Model Evidence", desc: "Dive into the technical machine learning details behind the estimate." }
+              { title: "Check Price", desc: "Start here if you already have a listing price to evaluate." },
+              { title: "Area Prices", desc: "Use this only if you want extra context on similar homes." },
+              { title: "How It Works", desc: "Optional plain-English explanation of how the price check was made." }
             ].map((step, i) => (
               <div
                 key={i}
@@ -236,7 +235,7 @@ export default function OverviewPage({ setActivePage }) {
       <section className="story-section flow-section">
         <Reveal className="section-heading">
           <span className="eyebrow">Recommended flow</span>
-          <h2>Start with the report. Use the evidence when it helps.</h2>
+          <h2>Start with the price check. Use the evidence when it helps.</h2>
         </Reveal>
         <div className="bento-grid bento-flow clean-bento premium-bento">
           <Reveal as="article" className="bento-card clean-card span-2-col span-2-row step-1-card has-glow">
@@ -244,12 +243,12 @@ export default function OverviewPage({ setActivePage }) {
             <div className="noise-overlay"></div>
             <span className="clean-badge">STEP 1</span>
             <div className="card-center-title">
-              <h3>Generate a valuation report</h3>
+              <h3>Check this home price</h3>
             </div>
             <div className="card-bottom-content">
-              <p>Enter a listing and compare the asking price with HomeScope's fair value estimate.</p>
+              <p>Enter a listing and see whether the asking price looks low, fair, or high.</p>
               <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("predict")}>
-                <span className="btn-text">Generate Valuation Report</span>
+                <span className="btn-text">Check Home Price</span>
                 <span className="btn-arrow">&mdash;</span>
               </button>
             </div>
@@ -266,11 +265,11 @@ export default function OverviewPage({ setActivePage }) {
                 </svg>
               </div>
             </div>
-            <h3>Review comparable market context</h3>
-            <p>Use Market to see similar records, price spread, city averages, and broader trend context.</p>
+            <h3>See area prices</h3>
+            <p>Use Market to see similar homes, price ranges, and broad U.S. price movement.</p>
             <div className="card-action">
               <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("market")}>
-                <span className="btn-text">Explore Market First</span>
+                <span className="btn-text">See Area Prices</span>
                 <span className="btn-arrow">&mdash;</span>
               </button>
             </div>
@@ -289,11 +288,11 @@ export default function OverviewPage({ setActivePage }) {
                 </svg>
               </div>
             </div>
-            <h3>Optional: review model evidence</h3>
-            <p>Open the technical evidence only if you want to see how the estimate was produced.</p>
+            <h3>Optional: see how it works</h3>
+            <p>Open the explanation only if you want to see how the price check was produced.</p>
             <div className="card-action">
               <button type="button" className="text-button dash-button gold-text" onClick={() => setActivePage("model")}>
-                <span className="btn-text">Review Model Evidence</span>
+                <span className="btn-text">How It Works</span>
                 <span className="btn-arrow">&mdash;</span>
               </button>
             </div>
@@ -303,11 +302,11 @@ export default function OverviewPage({ setActivePage }) {
 
       <Reveal as="section" className="final-cta">
         <span className="eyebrow">Next step</span>
-        <h2>Generate the valuation report first.</h2>
-        <p>Market context and model evidence are available after that if you want to dig deeper.</p>
+        <h2>Check the home price first.</h2>
+        <p>Area prices and the method explanation are available after that if you want to dig deeper.</p>
         <div className="hero-actions">
-          <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
-          <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>Explore Market First</button>
+          <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Check Home Price</button>
+          <button type="button" className="secondary-button" onClick={() => setActivePage("market")}>See Area Prices</button>
         </div>
       </Reveal>
     </div>

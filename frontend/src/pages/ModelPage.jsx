@@ -49,7 +49,7 @@ function formatExample(example) {
   const actual = currency.format(example.actual_price || 0);
   const predicted = currency.format(example.predicted_price || 0);
   const error = currency.format(Math.abs(example.residual || 0));
-  return `${actual} actual vs ${predicted} predicted (${error} error)`;
+  return actual + " actual vs " + predicted + " checked price (" + error + " mistake)";
 }
 
 export default function ModelPage({ setActivePage }) {
@@ -63,7 +63,7 @@ export default function ModelPage({ setActivePage }) {
         setModelData(data);
         setError("");
       })
-      .catch(() => setError("Could not load model evidence. Confirm the backend is running on port 8000."))
+      .catch(() => setError("Could not load the method details. Confirm the backend is running on port 8000."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -79,87 +79,89 @@ export default function ModelPage({ setActivePage }) {
   const averageModelError = selectedModel?.best_mae ?? modelDetail?.best_mae;
   const trainingRecords = modelDetail?.rows_trained ?? artifact?.dataset_row_count_after_cleaning ?? 0;
   const inputCount = modelDetail?.features_used ?? (pick(modelData, ["feature_columns"], []) || []).length;
-  const maeBars = metrics.map((item) => ({ label: item.name || item.model || "Model", value: item.mae ?? item.MAE }));
-  const errorBars = errorByRange.map((item) => ({ label: item.label, value: item.mae }));
+  const errorBars = metrics.map((item) => ({ label: item.name || item.model || "Checker", value: item.mae ?? item.MAE }));
+  const rangeBars = errorByRange.map((item) => ({ label: item.label, value: item.mae }));
 
   return (
     <div className="screen-stack">
       <PageHeader
-        eyebrow="Model Evidence"
-        title="Optional technical details behind the valuation report."
-        copy="This page explains the model used by HomeScope for users who want extra evidence behind the estimate."
-        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Report</button>}
+        eyebrow="How It Works"
+        title="How HomeScope checks a price."
+        copy="You do not need this page to use HomeScope. This page is only for users who want to understand how the price check was made."
+        aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Check This Price</button>}
       />
 
       {error ? <div className="error-panel">{error}</div> : null}
-      {loading ? <div className="loading-panel">Loading model evidence...</div> : null}
+      {loading ? <div className="loading-panel">Loading method details...</div> : null}
 
       <section className="panel optional-evidence-banner">
-        <span className="eyebrow">Optional section</span>
-        <h2>You do not need to understand this page to use HomeScope.</h2>
-        <p>This section is for users who want to see how the estimate was produced. Start with the Valuation Report for the main product flow.</p>
+        <span className="eyebrow">Optional explanation</span>
+        <h2>You do not need this page to use HomeScope.</h2>
+        <p>This page is only for users who want to understand how the price check was made. The Check Price page gives the main answer.</p>
       </section>
 
       <section className="metric-grid">
-        <MetricCard label="Model used for this report" value={bestModel} tone="gold" />
-        <MetricCard label="Average model error" value={currency.format(averageModelError ?? 0)} detail="Average miss during testing" />
-        <MetricCard label="Records used to train model" value={trainingRecords.toLocaleString()} tone="blue" />
+        <MetricCard label="Best-performing price checker" value="HomeScope selected checker" detail={"Technical name: " + bestModel} tone="gold" />
+        <MetricCard label="Average error" value={currency.format(averageModelError ?? 0)} detail="Average miss during testing" />
+        <MetricCard label="Homes learned from" value={trainingRecords.toLocaleString()} tone="blue" />
         <MetricCard label="Inputs reviewed" value={inputCount} detail={formatDate(modelDetail?.trained_at || artifact?.trained_at)} />
       </section>
 
       <section className="panel selected-model-panel">
         <div className="panel-heading">
           <span>Plain-English summary</span>
-          <h2>{selectedModel?.name || bestModel}</h2>
-          <p>{selectedModel?.reason || "The backend did not return a selected-model explanation."}</p>
+          <h2>HomeScope used its best-performing price checker.</h2>
+          <p>{selectedModel?.reason || "HomeScope compares tested price checkers and uses the one with the smallest average error."}</p>
         </div>
-        <div className="selected-model-badge">Model used for this report</div>
+        <div className="selected-model-badge">Technical name: {bestModel}</div>
         <div className="model-detail-grid">
-            <div>
-              <span>Saved model status</span>
-              <strong>{modelDetail?.artifact_loaded || artifact?.artifact_loaded ? "Saved model loaded" : "In-memory fallback"}</strong>
-            </div>
-            <div>
-              <span>Data source</span>
-              <strong>{modelDetail?.source || artifact?.source || "Unknown"}</strong>
-            </div>
-            <div>
-              <span>Average model error</span>
-              <strong>{currency.format(averageModelError ?? 0)}</strong>
-            </div>
-            <div>
-              <span>Inputs reviewed</span>
-              <strong>{inputCount}</strong>
-            </div>
+          <div>
+            <span>Saved checker status</span>
+            <strong>{modelDetail?.artifact_loaded || artifact?.artifact_loaded ? "Saved checker loaded" : "Fallback checker loaded"}</strong>
+          </div>
+          <div>
+            <span>Data source</span>
+            <strong>{modelDetail?.source || artifact?.source || "Unknown"}</strong>
+          </div>
+          <div>
+            <span>Average error</span>
+            <strong>{currency.format(averageModelError ?? 0)}</strong>
+          </div>
+          <div>
+            <span>Inputs reviewed</span>
+            <strong>{inputCount}</strong>
+          </div>
         </div>
       </section>
 
       <section className="panel metric-guide-panel">
         <div className="panel-heading">
-          <span>Beginner explanation</span>
-          <h2>How to read this page</h2>
+          <span>Plain-English glossary</span>
+          <h2>How to read the class details</h2>
         </div>
         <div className="metric-guide-grid">
-          <p><strong>MAE means average model error.</strong> Lower is better.</p>
-          <p><strong>RMSE gives extra weight to large misses.</strong> It helps show outlier risk.</p>
-          <p><strong>R² shows how much price movement the model explains.</strong> Closer to 1 is stronger.</p>
-          <p><strong>Feature importance</strong> shows which inputs most influenced the selected model.</p>
+          <p><strong>Average error</strong> means the typical dollar miss during testing. Lower is better.</p>
+          <p><strong>Large-error check</strong> puts more weight on big misses, so it helps show outlier risk.</p>
+          <p><strong>Price pattern score</strong> shows how much of the price pattern the checker captured. Higher is stronger.</p>
+          <p><strong>Prediction mistakes</strong> are examples where the checked price was above or below the real price.</p>
+          <p><strong>What affected the estimate most</strong> shows which inputs mattered most to the checker.</p>
+          <p><strong>Random Forest Regressor</strong> is the technical name for HomeScope's best-performing price checker when that checker is selected.</p>
         </div>
       </section>
 
       <div className="section-label">
-        <span>Model comparison</span>
-        <p>These cards compare the models HomeScope tested. The selected model is used by the valuation report.</p>
+        <span>Checker comparison</span>
+        <p>These cards keep the class-required performance evidence, but the main product flow does not require reading them.</p>
       </div>
       <section className="model-comparison-grid">
         {metrics.length ? metrics.map((item) => {
           const isSelected = item.name === bestModel;
           return (
-            <article className={`model-comparison-card ${isSelected ? "selected" : ""}`} key={item.name}>
+            <article className={"model-comparison-card " + (isSelected ? "selected" : "")} key={item.name}>
               <div>
-                <span>{isSelected ? "Selected model" : "Candidate model"}</span>
-                <h3>{item.name}</h3>
-                {isSelected ? <p className="selected-model-note">Used by the valuation report.</p> : null}
+                <span>{isSelected ? "Selected checker" : "Candidate checker"}</span>
+                <h3>{isSelected ? "Best-performing price checker" : item.name}</h3>
+                <p className="selected-model-note">Technical name: {item.name}</p>
               </div>
               <dl>
                 <div>
@@ -171,28 +173,28 @@ export default function ModelPage({ setActivePage }) {
                   <dd>{currency.format(item.rmse ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt>Price explained</dt>
+                  <dt>Price pattern score</dt>
                   <dd>{Number(item.r2 ?? 0).toFixed(3)}</dd>
                 </div>
               </dl>
             </article>
           );
-        }) : <div className="empty-visual">No model metrics were returned by the backend.</div>}
+        }) : <div className="empty-visual">No checker scores were returned by the backend.</div>}
       </section>
 
       <details className="panel model-table-card">
         <summary>
-          <span>Detailed technical evidence</span>
-          MAE, RMSE, and R² table
+          <span>Optional technical table</span>
+          Class-required score details
         </summary>
         <div className="details-content">
           {metrics.length ? (
             <div className="model-table">
               <div className="model-row header">
-                <span>Model</span>
-                <span>MAE average error</span>
-                <span>RMSE large misses</span>
-                <span>R² explained movement</span>
+                <span>Technical checker name</span>
+                <span>Average error</span>
+                <span>Large-error check</span>
+                <span>Price pattern score</span>
               </div>
               {metrics.map((item) => (
                 <div className="model-row" key={item.name}>
@@ -204,71 +206,71 @@ export default function ModelPage({ setActivePage }) {
               ))}
             </div>
           ) : (
-            <div className="empty-visual">No model metrics were returned by the backend.</div>
+            <div className="empty-visual">No checker scores were returned by the backend.</div>
           )}
         </div>
       </details>
 
       <details className="panel feature-importance-panel">
         <summary>
-          <span>Feature importance</span>
-          What affects this estimate
+          <span>What affected the estimate most</span>
+          Inputs with the most influence
         </summary>
         <div className="details-content">
-          <p className="details-intro">Higher values mean that input had more influence on the model's prediction behavior.</p>
+          <p className="details-intro">Higher values mean that input had more influence on the checker during testing.</p>
           {featureImportance.length ? (
             <div className="importance-list">
               {featureImportance.map((item) => (
                 <div className="importance-row" key={item.label}>
                   <span>{item.label}</span>
-                  <div><i style={{ width: `${Math.max(4, Number(item.value || 0) * 100)}%` }} /></div>
+                  <div><i style={{ width: Math.max(4, Number(item.value || 0) * 100) + "%" }} /></div>
                   <strong>{percent.format(item.value || 0)}</strong>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="empty-visual">Feature importance is available when the selected model exposes importance scores.</div>
+            <div className="empty-visual">This is available when the selected checker exposes influence scores.</div>
           )}
         </div>
       </details>
 
       <details className="panel error-analysis-panel">
         <summary>
-          <span>Error analysis</span>
-          Where estimates are more or less precise
+          <span>Prediction mistakes</span>
+          Where checks are more or less precise
         </summary>
         <div className="details-content">
           <section className="chart-grid">
-            <ChartCard title="Average model error by model" description="Lower values mean smaller average dollar misses during testing.">
-              <BarChart data={maeBars} tone="mixed" layout="horizontal" />
+            <ChartCard title="Average error by checker" description="Lower values mean smaller average dollar misses during testing.">
+              <BarChart data={errorBars} tone="mixed" layout="horizontal" />
             </ChartCard>
-            <ChartCard title="Error by price range" description="Shows where the model tends to be less precise across lower and higher price bands.">
-              <BarChart data={errorBars} tone="coral" layout="horizontal" />
+            <ChartCard title="Average error by price range" description="Shows where the checker tends to be less precise across lower and higher price bands.">
+              <BarChart data={rangeBars} tone="coral" layout="horizontal" />
             </ChartCard>
           </section>
           <section className="chart-grid">
-            <ChartCard title="Prediction error plot" description="Dots near zero are better. A wide spread means the valuation report should be read with more caution.">
+            <ChartCard title="Prediction mistakes plot" description="Dots near zero are better. A wide spread means the price check should be read with more caution.">
               <ScatterChart data={residuals} residual />
             </ChartCard>
             <article className="panel prediction-examples-panel">
               <div className="panel-heading">
-                <span>Prediction examples</span>
+                <span>Example checks</span>
                 <h2>Close, too high, and too low</h2>
               </div>
               <div className="example-columns">
                 {[
                   ["Close", examples.close || []],
-                  ["Predicted too high", examples.too_high || []],
-                  ["Predicted too low", examples.too_low || []],
+                  ["Checked too high", examples.too_high || []],
+                  ["Checked too low", examples.too_low || []],
                 ].map(([label, rows]) => (
                   <div key={label}>
                     <strong>{label}</strong>
                     {rows.length ? (
                       <ul>
-                        {rows.slice(0, 3).map((item) => <li key={`${label}-${item.actual_price}-${item.predicted_price}`}>{formatExample(item)}</li>)}
+                        {rows.slice(0, 3).map((item) => <li key={label + "-" + item.actual_price + "-" + item.predicted_price}>{formatExample(item)}</li>)}
                       </ul>
                     ) : (
-                      <p>No examples in the current error sample.</p>
+                      <p>No examples in the current mistake sample.</p>
                     )}
                   </div>
                 ))}

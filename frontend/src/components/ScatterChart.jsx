@@ -10,7 +10,7 @@ function compact(value, format = "currency") {
 
 function formatReadout(point, residual) {
   if (!point) return { x: residual ? "Point to a dot to read the error" : "Point to a dot to read the listing", y: "Up to 80 records shown" };
-  if (residual) return { x: `Predicted ${compact(point.x)}`, y: `Residual ${compact(point.y)}` };
+  if (residual) return { x: "Checked price " + compact(point.x), y: "Mistake " + compact(point.y) };
   return { x: `${compact(point.x, "number")} sq ft`, y: compact(point.y) };
 }
 
@@ -44,8 +44,8 @@ export default function ScatterChart({ data = [], residual = false, xLabel, yLab
   const zeroY = mapY(0);
   const xTicks = [minX, minX + spreadX / 2, maxX];
   const yTicks = [minY, minY + spreadY / 2, maxY];
-  const finalXLabel = xLabel || (residual ? "Predicted price" : "Living space");
-  const finalYLabel = yLabel || (residual ? "Error" : "Price");
+  const finalXLabel = xLabel || (residual ? "Checked price" : "Living space");
+  const finalYLabel = yLabel || (residual ? "Mistake" : "Price");
 
   return (
     <div className="interactive-chart">
@@ -53,7 +53,7 @@ export default function ScatterChart({ data = [], residual = false, xLabel, yLab
         <span>{readout.x}</span>
         <strong>{readout.y}</strong>
       </div>
-      <svg className="scatter-chart premium-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={residual ? "Residual scatter plot" : "Scatter plot"}>
+      <svg className="scatter-chart premium-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={residual ? "Prediction mistakes plot" : "Scatter plot"}>
         {yTicks.map((tick) => (
           <g key={`y-${tick}`}>
             <line className="grid-line" x1={pad} x2={width - pad} y1={mapY(tick)} y2={mapY(tick)} />

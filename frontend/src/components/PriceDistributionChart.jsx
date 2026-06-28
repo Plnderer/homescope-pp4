@@ -7,7 +7,7 @@ export default function PriceDistributionChart({ data = [] }) {
   const rows = data.filter((item) => Number(item.value) > 0).slice(0, 8);
 
   if (!rows.length) {
-    return <div className="empty-visual">No price distribution data available.</div>;
+    return <div className="empty-visual">No price range data available.</div>;
   }
 
   const max = Math.max(...rows.map((item) => Number(item.value) || 0), 1);
@@ -17,11 +17,11 @@ export default function PriceDistributionChart({ data = [] }) {
   ), rows[0]);
 
   return (
-    <div className="price-distribution-chart" role="img" aria-label="Price distribution by range">
+    <div className="price-distribution-chart" role="img" aria-label="Price ranges">
       <div className="distribution-summary">
         <span>Most common range</span>
         <strong>{selected.label}</strong>
-        <p>{integer.format(selected.value)} of {integer.format(total)} records are in this visible distribution.</p>
+        <p>{integer.format(selected.value)} of {integer.format(total)} homes are in this visible range.</p>
       </div>
 
       <div className="distribution-rows">

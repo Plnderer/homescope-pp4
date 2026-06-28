@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BarChart from "../components/BarChart";
 import ChartCard from "../components/ChartCard";
 import PageHeader from "../components/PageHeader";
@@ -19,7 +19,7 @@ function formatAssumption(item) {
   if (typeof item === "string") return item;
   if (Array.isArray(item)) return item.join(": ");
   if (item && typeof item === "object") {
-    return Object.entries(item).map(([key, value]) => `${key}: ${value}`).join(", ");
+    return Object.entries(item).map(([key, value]) => key + ": " + value).join(", ");
   }
   return String(item);
 }
@@ -42,7 +42,7 @@ function formatAssumptionValue(key, value) {
   if (value === undefined || value === null || value === "") return "Not available";
   if (key === "median_income") return currency.format(Number(value) || 0);
   if (key === "zip_population") return integer.format(Number(value) || 0);
-  if (key === "zip_density") return `${decimal.format(Number(value) || 0)} people / sq mi`;
+  if (key === "zip_density") return decimal.format(Number(value) || 0) + " people / sq mi";
   if (key === "latitude" || key === "longitude") return decimal.format(Number(value) || 0);
   return String(value);
 }
@@ -70,7 +70,48 @@ function normalizeAssumptions(assumptions) {
   }));
 }
 
-export default function PredictPage({ setActivePage }) {
+function getPriceSignal(listing, predicted, fairValueRange) {
+  const asking = Number(listing) || 0;
+  const estimate = Number(predicted) || 0;
+  if (!estimate) return { text: "Not enough confidence.", tone: "neutral" };
+
+  if (fairValueRange?.low && fairValueRange?.high) {
+    if (asking < Number(fairValueRange.low)) return { text: "This looks like a good price.", tone: "positive" };
+    if (asking > Number(fairValueRange.high)) return { text: "This looks high.", tone: "negative" };
+    return { text: "This looks fair.", tone: "neutral" };
+  }
+
+  const percentDifference = Math.abs(asking - estimate) / estimate;
+  if (percentDifference <= 0.05) return { text: "This looks fair.", tone: "neutral" };
+  if (asking < estimate) return { text: "This looks like a good price.", tone: "positive" };
+  return { text: "This looks high.", tone: "negative" };
+}
+
+function describeDifference(listing, predicted) {
+  const asking = Number(listing) || 0;
+  const estimate = Number(predicted) || 0;
+  if (!estimate) return "HomeScope needs more information before it can compare this price.";
+
+  const amount = Math.abs(asking - estimate);
+  if (amount < 1) return "This listing is about the same as the model estimate.";
+  const direction = asking < estimate ? "below" : "above";
+  return "This listing is about " + currency.format(amount) + " " + direction + " the model estimate.";
+}
+
+function marketFiltersFromForm(form) {
+  const livingSpace = Math.max(1, Number(form.living_space) || 1);
+  return {
+    state: form.state || "All",
+    city: form.city || "All",
+    min_beds: Math.max(0, Number(form.beds) || 0),
+    min_baths: Math.max(0, Number(form.baths) || 0),
+    min_sqft: Math.max(0, Math.round(livingSpace * 0.75)),
+    max_sqft: Math.round(livingSpace * 1.25),
+  };
+}
+
+export default function PredictPage({ setActivePage, setMarketFilters }) {
+  const formRef = useRef(null);
   const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
   const [form, setForm] = useState({
     state: "New York",
@@ -87,7 +128,7 @@ export default function PredictPage({ setActivePage }) {
   useEffect(() => {
     getFilters(form.state)
       .then(setOptions)
-      .catch(() => setError("Could not load prediction filters from the backend."));
+      .catch(() => setError("Could not load price-check filters from the backend."));
   }, [form.state]);
 
   function updateField(key, value) {
@@ -98,15 +139,24 @@ export default function PredictPage({ setActivePage }) {
     }));
   }
 
+  function handleEditDetails() {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleSeeAreaPrices() {
+    setMarketFilters?.(marketFiltersFromForm(form));
+    setActivePage("market");
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (form.living_space === "" || Number(form.living_space) < 1 || form.listing_price === "" || Number(form.listing_price) < 1) {
-      setError("Please enter a value of 1 or greater for Living space and Listing price.");
+      setError("Please enter a value of 1 or greater for living space and asking price.");
       return;
     }
     if (form.beds === "" || form.baths === "" || Number(form.beds) < 0 || Number(form.baths) < 0) {
-      setError("Please ensure Beds and Baths are set to 0 or higher.");
+      setError("Please keep beds and baths at 0 or higher.");
       return;
     }
 
@@ -122,7 +172,7 @@ export default function PredictPage({ setActivePage }) {
       };
       setResult(await predictListing(payload));
     } catch {
-      setError("Prediction failed. Confirm the backend is running and the selected market has enough records.");
+      setError("Price check failed. Confirm the backend is running and the selected area has enough homes to compare.");
     } finally {
       setLoading(false);
     }
@@ -130,46 +180,35 @@ export default function PredictPage({ setActivePage }) {
 
   const predicted = pick(result, ["predicted_fair_value", "predicted_value", "prediction"], 0);
   const listing = pick(result, ["listing_price"], form.listing_price);
-  const difference = result ? pick(result, ["difference"], listing - predicted) : 0;
-  const marketLabel = pick(result, ["signal", "market_label", "label"], "Run a prediction");
-  let signalTone = "neutral";
-  const lbl = String(marketLabel).toLowerCase();
-  if (lbl.includes("below") || lbl.includes("under")) {
-    signalTone = "positive";
-  } else if (lbl.includes("above") || lbl.includes("over")) {
-    signalTone = "negative";
-  }
-  const modelName = pick(result, ["selected_model_name", "model_name"], "Model pending");
-  const assumptions = pick(result, ["assumptions_used", "assumptions"], []);
   const fairValueRange = pick(result, ["fair_value_range"], null);
-  const modelMae = pick(result, ["model_mae"], null);
-  const resultExplanation = pick(result, ["result_explanation"], "Submit the form to generate a research estimate.");
-  const errorContext = pick(result, ["model_error_context"], "");
-  const limitations = pick(result, ["limitations"], []);
+  const modelName = pick(result, ["selected_model_name", "model_name"], "Random Forest Regressor");
+  const assumptions = pick(result, ["assumptions_used", "assumptions"], []);
+  const resultExplanation = pick(result, ["result_explanation"], "HomeScope compared the asking price with its estimate from similar housing records.");
   const assumptionRows = useMemo(() => normalizeAssumptions(assumptions), [assumptions]);
+  const signal = result ? getPriceSignal(listing, predicted, fairValueRange) : { text: "Enter the home details first.", tone: "neutral" };
+  const differenceText = result ? describeDifference(listing, predicted) : "Your plain-English price check will appear here.";
   const comparisonBars = useMemo(() => result ? [
-    { label: "Fair value estimate", value: Number(predicted) || 0 },
-    { label: "Asking/listing price", value: Number(listing) || 0 },
+    { label: "HomeScope estimate", value: Number(predicted) || 0 },
+    { label: "Asking price", value: Number(listing) || 0 },
   ] : [], [result, predicted, listing]);
 
   return (
     <div className="screen-stack prediction-page">
       <PageHeader
-        eyebrow="Valuation Report"
-        title="Generate a HomeScope Valuation Report."
-        copy="Enter the visible listing details. HomeScope will compare the listing against market records and return a research estimate with a fair value range, price signal, and limitations."
-        aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>}
+        eyebrow="Check Price"
+        title="Check whether this home price looks fair."
+        copy="Start with the listing details. HomeScope will answer the main question first, then leave market context and method details optional."
+        aside={<button type="button" className="secondary-button" onClick={() => setActivePage("model")}>How It Works</button>}
       />
 
       {error ? <div className="error-panel">{error}</div> : null}
 
       <section className="prediction-flow">
-        {/* Step 1: Input */}
-        <form className="panel prediction-card" onSubmit={handleSubmit} noValidate>
+        <form className="panel prediction-card" onSubmit={handleSubmit} noValidate ref={formRef}>
           <div className="panel-heading">
-            <span>Listing inputs</span>
-            <h2>Property details for the report</h2>
-            <p>Use the core facts from the listing. If HomeScope needs background market details, they appear in a secondary assumptions section.</p>
+            <span>Listing details</span>
+            <h2>Tell HomeScope about the home.</h2>
+            <p>Use the visible facts from the listing: location, beds, baths, home size, and asking price.</p>
           </div>
           <div className="form-grid">
             <label>
@@ -197,92 +236,84 @@ export default function PredictPage({ setActivePage }) {
               <input type="number" min="1" value={form.living_space} required onChange={(event) => updateField("living_space", event.target.value)} />
             </label>
             <label>
-              <span>Listing price</span>
+              <span>Asking price</span>
               <input type="number" min="1" value={form.listing_price} required onChange={(event) => updateField("listing_price", event.target.value)} />
             </label>
           </div>
           <button type="submit" className="primary-button prediction-submit" disabled={loading}>
-            {loading ? "Generating report..." : "Generate Valuation Report"}
+            {loading ? "Checking price..." : "Check This Price"}
           </button>
         </form>
 
         {!result ? (
           <section className="panel prediction-hint-panel">
             <div className="panel-heading">
-              <span>Before prediction</span>
-              <h2>Your report will appear below.</h2>
-              <p>The report will show fair value, range, asking price, price signal, and limitations after generation.</p>
+              <span>What you will get</span>
+              <h2>A simple answer first.</h2>
+              <p>HomeScope will show whether the price looks good, fair, high, or too uncertain, followed by the key numbers behind that answer.</p>
             </div>
           </section>
         ) : (
           <>
-            {/* Step 2: Primary Result */}
-            <article className={`panel valuation-report ${result ? "ready" : "pending"}`}>
-              <span>HomeScope Valuation Report</span>
-              <h2>{result ? currency.format(predicted) : "Pending estimate"}</h2>
-              <p className="range-line">
-                {result && fairValueRange
-                  ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)} fair-value range`
-                  : "Run a prediction to calculate a fair-value range."}
-              </p>
-              <p className="report-warning">
-                Research estimate, not an appraisal. HomeScope uses past housing records and market patterns to estimate a fair value range.
-              </p>
-              <dl className="report-facts-grid">
+            <article className="panel valuation-report ready">
+              <span>HomeScope price check</span>
+              <strong className={"result-signal " + signal.tone}>{signal.text}</strong>
+              <p className="difference-line">{differenceText}</p>
+              <p className="report-warning">This is a research estimate, not an appraisal.</p>
+
+              <dl className="report-facts-grid simple-result-grid">
                 <div>
-                  <dt>Fair value estimate</dt>
-                  <dd>{result ? currency.format(predicted) : "Pending"}</dd>
-                </div>
-                <div>
-                  <dt>Fair value range</dt>
-                  <dd>{result && fairValueRange ? `${currency.format(fairValueRange.low)} - ${currency.format(fairValueRange.high)}` : "Pending"}</dd>
-                </div>
-                <div>
-                  <dt>Asking/listing price</dt>
+                  <dt>Asking price</dt>
                   <dd>{currency.format(listing)}</dd>
                 </div>
                 <div>
-                  <dt>Difference from fair value</dt>
-                  <dd>{result ? currency.format(difference) : "Pending"}</dd>
+                  <dt>HomeScope estimate</dt>
+                  <dd>{currency.format(predicted)}</dd>
                 </div>
                 <div>
-                  <dt>Trust note</dt>
-                  <dd>Use this as a research guide, not a final buying decision.</dd>
+                  <dt>Estimate range</dt>
+                  <dd>{fairValueRange ? currency.format(fairValueRange.low) + " - " + currency.format(fairValueRange.high) : "Not available"}</dd>
+                </div>
+                <div>
+                  <dt>Plain-English difference</dt>
+                  <dd>{differenceText}</dd>
                 </div>
               </dl>
+
+              <p className="checker-note">HomeScope used its best-performing price checker.</p>
+
+              <div className="result-action-row">
+                <button type="button" className="primary-button" onClick={handleSeeAreaPrices}>See Area Prices</button>
+                <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>How It Works</button>
+                <button type="button" className="secondary-button" onClick={handleEditDetails}>Edit Details</button>
+              </div>
             </article>
 
-            {/* Step 3 & 4: Visual Evidence and Technical Details */}
             <div className="bento-grid">
               <div className="premium-bento span-2-col">
-                <ChartCard title="Valuation comparison" description="A simple comparison between the entered listing price and the model's fair-value estimate.">
+                <ChartCard title="Price check comparison" description="A quick view of the asking price beside the HomeScope estimate.">
                   <BarChart data={comparisonBars} tone="mixed" layout="horizontal" />
                 </ChartCard>
               </div>
-              <div className="premium-bento span-2-col" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <article className="panel result-label" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div className="signal-band" style={{ marginBottom: '16px' }}>
-                    <span>Price signal</span>
-                    <strong className={`signal-badge ${signalTone}`}>{marketLabel}</strong>
-                  </div>
+
+              <div className="premium-bento span-2-col">
+                <article className="panel result-label result-explanation-panel">
+                  <span>Why HomeScope read it this way</span>
                   <p>{resultExplanation}</p>
-                </article>
-                <article className="panel result-label" style={{ flex: 1 }}>
-                  <span>Model used for this report</span>
-                  <strong>{modelName}</strong>
-                  <p>
-                    {errorContext || `During testing, the model's predictions were off by about ${currency.format(modelMae || 0)} on average. This does not mean every estimate is wrong by exactly this amount.`}
-                  </p>
+                  <details className="technical-name-details">
+                    <summary>Optional checker details</summary>
+                    <p>Technical name: {modelName}.</p>
+                  </details>
                 </article>
               </div>
 
-              <div className="premium-bento span-2-col">
+              <div className="premium-bento span-4-col">
                 <details className="panel assumptions-panel">
                   <summary>
-                    <span>Assumptions</span>
-                    Market context used by the model
+                    <span>Optional assumptions</span>
+                    Area context HomeScope filled in
                   </summary>
-                  <p>These fields are filled from the selected city medians when the form does not collect them directly.</p>
+                  <p>These fields come from the selected city when the form does not ask for them directly.</p>
                   <dl className="assumption-list">
                     {assumptionRows.map((item) => (
                       <div key={item.key}>
@@ -292,21 +323,6 @@ export default function PredictPage({ setActivePage }) {
                     ))}
                   </dl>
                 </details>
-              </div>
-              <div className="premium-bento span-2-col">
-                <section className="panel limitations-panel">
-                  <div className="panel-heading">
-                    <span>Report limits</span>
-                    <h2>Research estimate, not an appraisal.</h2>
-                    <p>HomeScope uses past housing records and market patterns to estimate a fair value range. Use this as a research guide, not a final buying decision.</p>
-                  </div>
-                  <ul>
-                    {(limitations.length ? limitations : [
-                      "This is a research estimate, not a real appraisal.",
-                      "Outliers and local location effects can increase prediction error.",
-                    ]).map((note) => <li key={note}>{note}</li>)}
-                  </ul>
-                </section>
               </div>
             </div>
           </>

@@ -7,9 +7,9 @@ import "./styles.css";
 
 const pages = [
   { id: "overview", label: "Overview" },
+  { id: "predict", label: "Check Price" },
   { id: "market", label: "Market" },
-  { id: "predict", label: "Predict" },
-  { id: "model", label: "Model Evidence" },
+  { id: "model", label: "How It Works" },
 ];
 
 const pageComponents = {
@@ -21,6 +21,7 @@ const pageComponents = {
 
 export default function App() {
   const [activePage, setActivePage] = useState("overview");
+  const [marketFilters, setMarketFilters] = useState(null);
   const ActivePage = pageComponents[activePage];
 
   return (
@@ -30,7 +31,7 @@ export default function App() {
           <img src="/logo.jpg" alt="HomeScope logo" className="brand-image" />
           <span className="brand-copy">
             <strong>HomeScope</strong>
-            <small>Market valuation reports</small>
+            <small>Simple home price checks</small>
           </span>
         </button>
 
@@ -48,12 +49,12 @@ export default function App() {
         </nav>
 
         <button type="button" className="primary-button header-cta" onClick={() => setActivePage("predict")}>
-          Generate Valuation Report
+          Check Home Price
         </button>
       </header>
 
       <main className="workspace-main">
-        <ActivePage setActivePage={setActivePage} />
+        <ActivePage setActivePage={setActivePage} marketFilters={marketFilters} setMarketFilters={setMarketFilters} />
       </main>
     </div>
   );

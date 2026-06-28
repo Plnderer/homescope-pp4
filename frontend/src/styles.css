@@ -153,7 +153,7 @@ button {
 .workspace-main {
   width: min(1180px, calc(100% - 44px));
   margin: 0 auto;
-  padding: clamp(32px, 5vw, 66px) 0 86px;
+  padding: clamp(32px, 5vw, 66px) 0 128px;
 }
 
 .screen-stack,
@@ -1314,6 +1314,65 @@ select:focus {
   font-weight: 800;
 }
 
+.result-signal {
+  display: block;
+  margin-top: 2px;
+  color: var(--gold-soft);
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: clamp(2.55rem, 5vw, 4.9rem);
+  font-weight: 400;
+  line-height: 0.94;
+  overflow-wrap: anywhere;
+}
+
+.result-signal.positive {
+  color: #a9c3a7;
+}
+
+.result-signal.negative {
+  color: #d9927e;
+}
+
+.result-signal.neutral {
+  color: var(--gold-soft);
+}
+
+.difference-line {
+  max-width: 780px;
+  color: var(--text) !important;
+  font-size: clamp(1rem, 1.7vw, 1.18rem);
+  font-weight: 800;
+}
+
+.checker-note {
+  color: var(--gold-soft) !important;
+  font-weight: 800;
+}
+
+.result-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.technical-name-details {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+}
+
+.technical-name-details summary {
+  width: fit-content;
+  color: var(--gold-soft);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.technical-name-details p {
+  margin-top: 10px;
+}
+
 .report-warning {
   padding: 10px 12px;
   border: 1px solid var(--border-strong);
@@ -1893,7 +1952,9 @@ details.panel > .details-content {
   .hero-actions .primary-button,
   .hero-actions .secondary-button,
   .action-row .primary-button,
-  .action-row .secondary-button {
+  .action-row .secondary-button,
+  .result-action-row .primary-button,
+  .result-action-row .secondary-button {
     width: 100%;
   }
 }

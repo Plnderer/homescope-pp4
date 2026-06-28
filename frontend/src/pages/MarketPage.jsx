@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import BarChart from "../components/BarChart";
 import ChartCard from "../components/ChartCard";
 import LineChart from "../components/LineChart";
 import MetricCard from "../components/MetricCard";
@@ -12,8 +11,8 @@ const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 function compactCurrency(value) {
   const number = Number(value) || 0;
-  if (Math.abs(number) >= 1000000) return `$${(number / 1000000).toFixed(1)}M`;
-  if (Math.abs(number) >= 1000) return `$${Math.round(number / 1000)}K`;
+  if (Math.abs(number) >= 1000000) return "$" + (number / 1000000).toFixed(1) + "M";
+  if (Math.abs(number) >= 1000) return "$" + Math.round(number / 1000) + "K";
   return currency.format(number);
 }
 
@@ -37,27 +36,35 @@ function readablePriceBucket(label) {
   if (!numbers || numbers.length < 2) return text;
   const [low, high] = numbers.map(Number);
   if (!Number.isFinite(low) || !Number.isFinite(high)) return text;
-  return `${compactCurrency(low)}-${compactCurrency(high)}`;
+  return compactCurrency(low) + "-" + compactCurrency(high);
 }
 
-export default function MarketPage({ setActivePage }) {
-  const [filters, setFilters] = useState({
-    state: "All",
-    city: "All",
-    min_beds: 1,
-    min_baths: 1,
-    min_sqft: 500,
-    max_sqft: "",
-  });
+const defaultFilters = {
+  state: "All",
+  city: "All",
+  min_beds: 1,
+  min_baths: 1,
+  min_sqft: 500,
+  max_sqft: "",
+};
+
+export default function MarketPage({ setActivePage, marketFilters }) {
+  const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...(marketFilters || {}) }));
   const [options, setOptions] = useState({ states: ["All"], cities: ["All"] });
   const [market, setMarket] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (marketFilters) {
+      setFilters((current) => ({ ...current, ...marketFilters }));
+    }
+  }, [marketFilters]);
+
+  useEffect(() => {
     getFilters(filters.state)
       .then(setOptions)
-      .catch(() => setError("Could not load filter options from the backend."));
+      .catch(() => setError("Could not load area filters from the backend."));
   }, [filters.state]);
 
   useEffect(() => {
@@ -76,7 +83,7 @@ export default function MarketPage({ setActivePage }) {
         setMarket(data);
         setError("");
       })
-      .catch(() => setError("Could not load market data. Confirm the backend is running on port 8000."))
+      .catch(() => setError("Could not load area prices. Confirm the backend is running on port 8000."))
       .finally(() => setLoading(false));
   }, [filters]);
 
@@ -102,19 +109,19 @@ export default function MarketPage({ setActivePage }) {
       <section className="market-hero">
         <div className="market-hero-glow"></div>
         <div className="market-hero-content text-center">
-          <span className="eyebrow" style={{justifyContent: 'center'}}>Market report</span>
-          <h1 className="hero-massive-title">Comparable market context for the report.</h1>
+          <span className="eyebrow" style={{justifyContent: "center"}}>Market</span>
+          <h1 className="hero-massive-title">See prices in this area.</h1>
           <p className="hero-sub">
-            Use this page to build a comparison set of similar homes. These market records help explain whether a listing looks low, fair, or high.
+            Use this optional page to compare similar homes near the listing. It helps explain the price check without turning the app into a dashboard.
           </p>
         </div>
       </section>
 
       <section className="premium-filter-panel">
         <div className="filter-header">
-          <span className="eyebrow">Market filters</span>
-          <h2>Build your comparison set</h2>
-          <p>Choose a location and property size. HomeScope will summarize similar records in that market.</p>
+          <span className="eyebrow">Area filters</span>
+          <h2>Choose homes to compare</h2>
+          <p>Pick the location and home size. If you came from Check Price, HomeScope starts with that home's details.</p>
         </div>
         <div className="premium-filter-groups">
           <div className="premium-filter-group">
@@ -135,15 +142,15 @@ export default function MarketPage({ setActivePage }) {
             </div>
           </div>
           <div className="premium-filter-group">
-            <h3>Property profile</h3>
+            <h3>Home details</h3>
             <div className="premium-inputs four">
               <label className="premium-input-wrapper">
                 <span>Minimum beds</span>
-                <input type="number" min="1" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
+                <input type="number" min="0" value={filters.min_beds} onChange={(event) => updateFilter("min_beds", event.target.value)} />
               </label>
               <label className="premium-input-wrapper">
                 <span>Minimum baths</span>
-                <input type="number" min="1" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
+                <input type="number" min="0" value={filters.min_baths} onChange={(event) => updateFilter("min_baths", event.target.value)} />
               </label>
               <label className="premium-input-wrapper">
                 <span>Minimum sq ft</span>
@@ -166,62 +173,62 @@ export default function MarketPage({ setActivePage }) {
           </div>
           <div className="live-count">
             <span className="pulse-dot"></span>
-            <strong>{integer.format(matchingCount)}</strong> active records
+            <strong>{integer.format(matchingCount)}</strong> Homes used
           </div>
         </div>
       </section>
 
       {error ? <div className="error-panel">{error}</div> : null}
-      {loading ? <div className="loading-panel">Loading market data...</div> : null}
+      {loading ? <div className="loading-panel">Loading area prices...</div> : null}
 
       <section className="section-stack">
         <div className="section-label">
-          <span>Market Snapshot</span>
-          <p>A simple read of the current comparison set.</p>
+          <span>Area snapshot</span>
+          <p>The core numbers from the homes currently selected.</p>
         </div>
         <div className="bento-grid">
           <div className="premium-bento metric-bento">
-            <MetricCard label="Records in comparison set" value={integer.format(matchingCount)} detail="Similar records in scope" />
+            <MetricCard label="Homes compared" value={integer.format(matchingCount)} detail="Homes in this area and size range" />
           </div>
           <div className="premium-bento metric-bento glow-gold">
-            <MetricCard label="Average price" value={currency.format(pick(market, ["average_price", "avg_price"]))} detail="Mean across selected records" />
+            <MetricCard label="Average home price" value={currency.format(pick(market, ["average_price", "avg_price"]))} detail="Typical price across the homes used" />
           </div>
           <div className="premium-bento metric-bento glow-sage">
-            <MetricCard label="Median price" value={currency.format(pick(market, ["median_price"]))} detail="Less sensitive to outliers" />
+            <MetricCard label="Middle home price" value={currency.format(pick(market, ["median_price"]))} detail="Half the homes cost more, half cost less" />
           </div>
           <div className="premium-bento metric-bento glow-blue">
-            <MetricCard label="Average $ / sq ft" value={currency.format(pick(market, ["average_price_per_sqft", "avg_price_per_sqft"]))} detail="Size-adjusted market context" />
+            <MetricCard label="Average price per square foot" value={currency.format(pick(market, ["average_price_per_sqft", "avg_price_per_sqft"]))} detail="Useful for comparing different home sizes" />
           </div>
         </div>
       </section>
 
       <section className="section-stack">
         <div className="section-label">
-          <span>Market Evidence</span>
-          <p>Use these views as background for the report. They explain the comparison set; they are not a replacement for an appraisal.</p>
+          <span>Area context</span>
+          <p>Use these views only if you want more background behind the price check.</p>
         </div>
         <div className="bento-grid">
           <div className="premium-bento span-2-col">
-            <ChartCard title="Price distribution" description="Shows how many similar homes fall into each price range. Large gaps can happen when listings cluster around certain price levels.">
+            <ChartCard title="Price ranges" description="Shows how many similar homes fall into each asking-price range.">
               <PriceDistributionChart data={histogram} />
             </ChartCard>
           </div>
           <div className="premium-bento span-2-col">
-            <ChartCard title="Price vs. living space" description="Shows how home size relates to price. Points far away from the group may be unusual listings.">
+            <ChartCard title="Price compared with home size" description="Shows how home size relates to price. Isolated points may be unusual listings.">
               <ScatterChart data={scatter} xLabel="Living space" yLabel="Price" />
             </ChartCard>
           </div>
           <div className="premium-bento span-4-col">
-            <ChartCard title="National trend context" description="Shows broad U.S. home price movement over time. This is market background, not a direct appraisal input.">
-              <LineChart data={trend} yLabel="U.S. median sale price" />
+            <ChartCard title="U.S. average sales price" description="ASPUS tracks broad U.S. average sales price movement over time. It is background context, not an appraisal input.">
+              <LineChart data={trend} yLabel="U.S. average sales price" />
             </ChartCard>
           </div>
         </div>
       </section>
 
       <div className="action-row">
-        <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Generate Valuation Report</button>
-        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>Review Model Evidence</button>
+        <button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Check This Price</button>
+        <button type="button" className="secondary-button" onClick={() => setActivePage("model")}>How It Works</button>
       </div>
     </div>
   );
