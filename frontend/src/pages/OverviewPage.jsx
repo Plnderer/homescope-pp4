@@ -83,7 +83,7 @@ export default function OverviewPage({ setActivePage }) {
           <span className="eyebrow" style={{justifyContent: 'center'}}>Home Value Intelligence</span>
           <h1 className="hero-massive-title">See what a home is worth.</h1>
           <p className="hero-sub">
-            Enter a few listing details and HomeScope will give you a plain-English read on whether the asking price looks fair.
+            Enter a few listing details and HomeScope will tell you whether the asking price looks fair.
           </p>
           <div className="hero-actions center-actions">
             <button type="button" className="hero-pill-button" onClick={() => setActivePage("predict")}>
@@ -243,7 +243,7 @@ export default function OverviewPage({ setActivePage }) {
             <div className="noise-overlay"></div>
             <span className="clean-badge">STEP 1</span>
             <div className="card-center-title">
-              <h3>Check this home price</h3>
+              <h3>Check<br />this home<br />price</h3>
             </div>
             <div className="card-bottom-content">
               <p>Enter a listing and see whether the asking price looks low, fair, or high.</p>

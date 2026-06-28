@@ -56,7 +56,7 @@ def _residual_points(bundle: dict, limit: int = 120) -> list[dict]:
     ]
 
 
-def _feature_importance(bundle: dict, limit: int = 8) -> list[dict]:
+def _feature_importance(bundle: dict) -> list[dict]:
     pipeline = bundle["best_pipeline"]
     estimator = pipeline.named_steps.get("model")
     importances = getattr(estimator, "feature_importances_", None)
@@ -84,7 +84,7 @@ def _feature_importance(bundle: dict, limit: int = 8) -> list[dict]:
         feature_scores[feature] = feature_scores.get(feature, 0.0) + float(score)
 
     total = sum(feature_scores.values()) or 1.0
-    ranked = sorted(feature_scores.items(), key=lambda item: item[1], reverse=True)[:limit]
+    ranked = sorted(feature_scores.items(), key=lambda item: item[1], reverse=True)
     return [{"label": feature, "value": float(score / total)} for feature, score in ranked]
 
 

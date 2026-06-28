@@ -175,7 +175,7 @@ def _prediction_examples(residual_points: list[dict]) -> dict:
     }
 
 
-def _feature_importance_from_pipeline(pipeline, feature_columns: list[str], limit: int = 8) -> list[dict]:
+def _feature_importance_from_pipeline(pipeline, feature_columns: list[str]) -> list[dict]:
     estimator = getattr(pipeline, "named_steps", {}).get("model") if pipeline is not None else None
     importances = getattr(estimator, "feature_importances_", None)
     if importances is None:
@@ -202,7 +202,7 @@ def _feature_importance_from_pipeline(pipeline, feature_columns: list[str], limi
         feature_scores[feature] = feature_scores.get(feature, 0.0) + float(score)
 
     total = sum(feature_scores.values()) or 1.0
-    ranked = sorted(feature_scores.items(), key=lambda item: item[1], reverse=True)[:limit]
+    ranked = sorted(feature_scores.items(), key=lambda item: item[1], reverse=True)
     return [
         {
             "label": feature,

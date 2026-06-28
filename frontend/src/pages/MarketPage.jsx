@@ -112,7 +112,7 @@ export default function MarketPage({ setActivePage, marketFilters }) {
           <span className="eyebrow" style={{justifyContent: "center"}}>Market</span>
           <h1 className="hero-massive-title">See prices in this area.</h1>
           <p className="hero-sub">
-            Use this optional page to compare similar homes near the listing. It helps explain the price check without turning the app into a dashboard.
+            Use this page to compare similar homes near the listing.
           </p>
         </div>
       </section>

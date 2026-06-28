@@ -87,7 +87,6 @@ export default function ModelPage({ setActivePage }) {
       <PageHeader
         eyebrow="How It Works"
         title="How HomeScope checks a price."
-        copy="You do not need this page to use HomeScope. This page is only for users who want to understand how the price check was made."
         aside={<button type="button" className="primary-button" onClick={() => setActivePage("predict")}>Check This Price</button>}
       />
 
@@ -96,7 +95,6 @@ export default function ModelPage({ setActivePage }) {
 
       <section className="panel optional-evidence-banner">
         <span className="eyebrow">Optional explanation</span>
-        <h2>You do not need this page to use HomeScope.</h2>
         <p>This page is only for users who want to understand how the price check was made. The Check Price page gives the main answer.</p>
       </section>
 
@@ -136,8 +134,7 @@ export default function ModelPage({ setActivePage }) {
 
       <section className="panel metric-guide-panel">
         <div className="panel-heading">
-          <span>Plain-English glossary</span>
-          <h2>How to read the class details</h2>
+          <span>Key terms</span>
         </div>
         <div className="metric-guide-grid">
           <p><strong>Average error</strong> means the typical dollar miss during testing. Lower is better.</p>
@@ -151,7 +148,6 @@ export default function ModelPage({ setActivePage }) {
 
       <div className="section-label">
         <span>Checker comparison</span>
-        <p>These cards keep the class-required performance evidence, but the main product flow does not require reading them.</p>
       </div>
       <section className="model-comparison-grid">
         {metrics.length ? metrics.map((item) => {
@@ -160,8 +156,7 @@ export default function ModelPage({ setActivePage }) {
             <article className={"model-comparison-card " + (isSelected ? "selected" : "")} key={item.name}>
               <div>
                 <span>{isSelected ? "Selected checker" : "Candidate checker"}</span>
-                <h3>{isSelected ? "Best-performing price checker" : item.name}</h3>
-                <p className="selected-model-note">Technical name: {item.name}</p>
+                <h3>{item.name}</h3>
               </div>
               <dl>
                 <div>
@@ -182,39 +177,12 @@ export default function ModelPage({ setActivePage }) {
         }) : <div className="empty-visual">No checker scores were returned by the backend.</div>}
       </section>
 
-      <details className="panel model-table-card">
-        <summary>
-          <span>Optional technical table</span>
-          Class-required score details
-        </summary>
-        <div className="details-content">
-          {metrics.length ? (
-            <div className="model-table">
-              <div className="model-row header">
-                <span>Technical checker name</span>
-                <span>Average error</span>
-                <span>Large-error check</span>
-                <span>Price pattern score</span>
-              </div>
-              {metrics.map((item) => (
-                <div className="model-row" key={item.name}>
-                  <span>{item.name}</span>
-                  <span>{currency.format(item.mae ?? 0)}</span>
-                  <span>{currency.format(item.rmse ?? 0)}</span>
-                  <span>{Number(item.r2 ?? 0).toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-visual">No checker scores were returned by the backend.</div>
-          )}
-        </div>
-      </details>
+
 
       <details className="panel feature-importance-panel">
         <summary>
           <span>What affected the estimate most</span>
-          Inputs with the most influence
+          &mdash; Inputs with the most influence
         </summary>
         <div className="details-content">
           <p className="details-intro">Higher values mean that input had more influence on the checker during testing.</p>
@@ -237,7 +205,7 @@ export default function ModelPage({ setActivePage }) {
       <details className="panel error-analysis-panel">
         <summary>
           <span>Prediction mistakes</span>
-          Where checks are more or less precise
+          &mdash; Where checks are more or less precise
         </summary>
         <div className="details-content">
           <section className="chart-grid">
@@ -283,7 +251,7 @@ export default function ModelPage({ setActivePage }) {
       <details className="panel limitations-panel">
         <summary>
           <span>Limitations</span>
-          Use the estimate carefully
+          &mdash; Use the estimate carefully
         </summary>
         <div className="details-content">
           <ul>
